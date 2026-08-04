@@ -30,14 +30,22 @@ Detailed mapping of what works via API and what does not:
 
 ## Quickstart
 
+One command - works on Linux, macOS **and Windows**:
+
 ```bash
+# Linux/macOS:
 ./gdpr.sh
+# or explicitly:
+python3 gdpr.py
+
+# Windows (cmd or double-click gdpr.bat):
+gdpr.bat
 ```
 
-That is it. On first run the script sets up the Python environment and asks
-for the instance URL, sysadmin API key and user ID once (stored in
-`elabftw.env`, chmod 600, gitignored). Then it exports all data and builds
-the report package:
+That is it. On first run the script sets up the Python environment (venv +
+`pip install`) and asks for the instance URL, sysadmin API key and user ID
+once (stored in `elabftw.env`, chmod 600, gitignored). Then it exports all
+data and builds the report package:
 
 ```
 HTML explorer: report/index.html   <- open in your browser
@@ -96,7 +104,9 @@ See [docs/gdpr-legal.md](docs/gdpr-legal.md) - in short:
 
 ```
 elabftw-gdpr/
-├── gdpr.sh                  <- one-command entry point (setup + export + report)
+├── gdpr.py                  <- cross-platform entry point (Linux/macOS/Windows)
+├── gdpr.sh                  <- Unix wrapper (./gdpr.sh)
+├── gdpr.bat                 <- Windows wrapper (double-click)
 ├── README.md                <- this file
 ├── LICENSE                  <- MIT
 ├── pyproject.toml           <- package metadata + dependencies + CLI entry points
