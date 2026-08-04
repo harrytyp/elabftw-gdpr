@@ -1,21 +1,22 @@
 """eLabFTW GDPR Art. 15 data export - API part.
 
-Pulls all personal data of a target user that is reachable through the
-eLabFTW REST API v2 using a sysadmin API key, via the official elabapy
-wrapper. Output: structured JSON under ``out/`` (see README).
+Pulls all personal data of one or more target users that is reachable
+through the eLabFTW REST API v2 using a sysadmin API key, via the official
+elabapy wrapper. Output: one folder per user under ``output/``
+(e.g. ``output/User75/``), see README.
 
-NOT covered by the API (needs DB/CLI access - see ``sql/gdpr_cli.sql``):
+NOT covered by the API (needs DB/CLI access - see ``gdpr_cli.sql``):
   audit_logs, authfail, changelog (structured), other users' api_keys,
   exports, todolist, unfinished_steps, favtags, pins, sig_keys,
   exclusive_edit_mode, lockout_devices
 
 Usage:
-  gdpr-export [--dry-run] [--no-files] [--out-dir DIR]
+  gdpr_export.py [--dry-run] [--no-files] [--out-dir DIR]
 
 Credentials are read from ``elabftw.env`` in the project root:
   ELAB_URL=https://eln.example.org
   ELAB_KEY=<sysadmin-api-key>
-  ELAB_USERID=42
+  ELAB_USERID=75,82          (comma-separated for multiple users)
 """
 
 from __future__ import annotations
@@ -33,8 +34,9 @@ import requests
 # elabapy raises requests.HTTPError from send_req, not its own Error class
 HTTP_ERRORS = (elabapy.Error, requests.HTTPError)
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parent
 ENV_FILE = PROJECT_ROOT / "elabftw.env"
+OUTPUT_DIR = PROJECT_ROOT / "output"
 PAGE_SIZE = 50  # entries per API page
 
 
@@ -46,7 +48,7 @@ def load_env() -> dict:
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 key, value = line.split("=", 1)
-                env[key.strip()] = value.strip().strip('"').strip("'")
+                env.setdefault(key.strip(), value.strip().strip('"').strip("'"))
     return env
 
 
@@ -79,40 +81,21 @@ def save_json(out_dir: Path, name: str, data) -> None:
     )
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="eLabFTW GDPR Art. 15 data export (API part, sysadmin key)")
-    parser.add_argument("--out-dir", default=str(PROJECT_ROOT / "out"),
-                        help="target directory for raw JSON export")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="only fetch and count, write nothing")
-    parser.add_argument("--no-files", action="store_true",
-                        help="skip downloading upload file contents")
-    args = parser.parse_args()
+def export_one_user(manager: elabapy.Manager, target: int, out_dir: Path,
+                    dry_run: bool, no_files: bool) -> bool:
+    """Export all API-reachable personal data for a single user.
 
-    env = load_env()
-    url = env.get("ELAB_URL")
-    key = env.get("ELAB_KEY")
-    userid = env.get("ELAB_USERID")
-    missing = [k for k, v in (("ELAB_URL", url), ("ELAB_KEY", key),
-                              ("ELAB_USERID", userid)) if not v]
-    if missing:
-        print(f"Missing: {', '.join(missing)} (env or {ENV_FILE.name})")
-        return 1
-
-    manager = elabapy.Manager(endpoint=f"{url.rstrip('/')}/api/v2/", token=key)
-    target = int(userid)
-    out_dir = Path(args.out_dir)
-
+    Returns True on success, False if the user could not be found.
+    """
     # --- 1. Account data: profile, teams, roles -----------------------------
     try:
         user = manager.send_req(f"users/{target}")
     except HTTP_ERRORS as e:
         print(f"User {target} not retrievable: {e}")
-        return 1
+        return False
     if not user:
         print(f"User {target} not found (404)")
-        return 1
+        return False
     teams = user.get("teams", [])
     team_ids = [t["id"] for t in teams if t.get("id")]
     print(f"User: {user.get('fullname')} <{user.get('email')}> | "
@@ -171,8 +154,8 @@ def main() -> int:
     except HTTP_ERRORS as e:
         print(f"  ! events: {e}")
 
-    if args.dry_run:
-        print("\n=== DRY RUN ===")
+    if dry_run:
+        print(f"\n=== DRY RUN user {target} ===")
         print(f"Account:      {user.get('fullname')} <{user.get('email')}>")
         print(f"Teams:        {len(teams)}")
         for name, data in user_subs.items():
@@ -182,7 +165,7 @@ def main() -> int:
         print(f"Bookings:     {len(bookings)}")
         for et in entity_types:
             print(f"{et:22s} {len(entities[et])}")
-        return 0
+        return True
 
     # --- 6. Per-entity detail: comments, revisions, steps, tags, actions ----
     detail_subs = ["comments", "revisions", "steps", "tags", "request_actions"]
@@ -208,7 +191,7 @@ def main() -> int:
             print(f"  ! {et}/{eid}/uploads: {e}")
             continue
         upload_meta[(et, eid)] = uploads
-        if not args.no_files:
+        if not no_files:
             for upload in uploads:
                 uid = upload["id"]
                 try:
@@ -228,20 +211,27 @@ def main() -> int:
                     print(f"  ! download upload {uid}: {e}")
 
     # --- 8. Lookups: status/category names per team (for the report) ---------
+    # items_types is a top-level endpoint, not a team submodel
+    try:
+        items_types_data = manager.send_req("items_types") or []
+        items_types_map = {str(d.get("id")): d.get("title") for d in items_types_data}
+    except HTTP_ERRORS as e:
+        print(f"  ! lookup items_types: {e}")
+        items_types_map = {}
     lookups = {}
     for tid in team_ids:
         team_lookups = {}
         for key, sub in [("experiments_status", "experiments_status"),
                          ("experiments_categories", "experiments_categories"),
                          ("items_status", "items_status"),
-                         ("items_categories", "resources_categories"),
-                         ("items_types", "items_types")]:
+                         ("items_categories", "resources_categories")]:
             try:
                 data = manager.send_req(f"teams/{tid}/{sub}") or []
                 team_lookups[key] = {str(d.get("id")): d.get("title") for d in data}
             except HTTP_ERRORS as e:
                 print(f"  ! lookup {sub} team {tid}: {e}")
                 team_lookups[key] = {}
+        team_lookups["items_types"] = items_types_map
         lookups[str(tid)] = team_lookups
 
     # --- 9. Persist raw export ------------------------------------------------
@@ -312,16 +302,52 @@ def main() -> int:
         lines.append(f"- {et}: {n} entries, {comments} comments, {revisions} revisions, {uploads} uploads")
     lines.append(f"- Upload files downloaded: {files_downloaded}")
     lines.append("")
-    lines.append("## DB/CLI only (see sql/gdpr_cli.sql)")
+    lines.append("## DB/CLI only (see gdpr_cli.sql)")
     lines.append("- audit_logs, authfail, changelog (structured), api_keys, exports,")
     lines.append("  todolist, unfinished_steps, favtags, pins, sig_keys, edit_mode, lockout_devices")
     (out_dir / "index.md").write_text("\n".join(lines))
 
-    print(f"\nDone. Output: {out_dir}")
+    print(f"\nDone user {target}: {out_dir}")
     print("Entities: " + ", ".join(f"{et}={len(entities[et])}" for et in entity_types))
     print(f"Upload files: {files_downloaded} | Uploads total: "
           f"{sum(len(v) for v in upload_meta.values())}")
-    return 0
+    return True
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="eLabFTW GDPR Art. 15 data export (API part, sysadmin key)")
+    parser.add_argument("--out-dir", default=str(OUTPUT_DIR),
+                        help="base directory for the per-user export folders")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="only fetch and count, write nothing")
+    parser.add_argument("--no-files", action="store_true",
+                        help="skip downloading upload file contents")
+    args = parser.parse_args()
+
+    env = load_env()
+    url = env.get("ELAB_URL")
+    key = env.get("ELAB_KEY")
+    userids = env.get("ELAB_USERID")
+    missing = [k for k, v in (("ELAB_URL", url), ("ELAB_KEY", key),
+                              ("ELAB_USERID", userids)) if not v]
+    if missing:
+        print(f"Missing: {', '.join(missing)} (env or {ENV_FILE.name})")
+        return 1
+    assert url and key
+
+    manager = elabapy.Manager(endpoint=f"{url.rstrip('/')}/api/v2/", token=key)
+    base_dir = Path(args.out_dir)
+
+    users = [int(x) for x in str(userids).replace(" ", "").split(",") if x]
+    ok = 0
+    for uid in users:
+        print(f"\n===== User {uid} =====")
+        out_dir = base_dir / f"User{uid}"
+        if export_one_user(manager, uid, out_dir, args.dry_run, args.no_files):
+            ok += 1
+    print(f"\nExported {ok}/{len(users)} users to {base_dir}")
+    return 0 if ok == len(users) else 1
 
 
 if __name__ == "__main__":

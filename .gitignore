@@ -1,12 +1,9 @@
 # Data & secrets - never commit or share
 elabftw.env
-out/
-report/
-dist/
+output/
 *.zip
 
 # Python
 .venv/
 __pycache__/
 *.pyc
-src/*.egg-info/

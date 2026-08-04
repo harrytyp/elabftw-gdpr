@@ -1,0 +1,5 @@
+# eLabFTW GDPR disclosure tooling - Python dependencies
+# Installed automatically into .venv on first run (see gdpr.py).
+elabapy>=1.1.0     # official eLabFTW API wrapper (pulls in requests)
+pillow>=10.0       # thumbnails for the HTML explorer
+reportlab>=4.0     # PDF disclosure letter

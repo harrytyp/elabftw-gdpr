@@ -28,7 +28,8 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parent
+OUTPUT_DIR = PROJECT_ROOT / "output"
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tif", ".tiff"}
 THUMBNAIL_MAX = 400
 
@@ -293,7 +294,8 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
     files_source = out_dir / "files"
     files_dest = report_dir / "files"
     assets_dir.mkdir(parents=True, exist_ok=True)
-    if files_source.exists():
+    # raw export and report share one folder per user - files are already there
+    if files_source.exists() and files_source.resolve() != files_dest.resolve():
         shutil.copytree(files_source, files_dest, dirs_exist_ok=True)
 
     manifest = read_json(out_dir / "manifest.json") or {}
@@ -507,59 +509,74 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
 # ZIP archive
 # ---------------------------------------------------------------------------
 
-def build_zip(out_dir: Path, report_dir: Path, zip_path: Path, uid) -> None:
+def build_zip(report_dir: Path, zip_path: Path) -> None:
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(report_dir.rglob("*")):
-            if path.is_file():
+            if path.is_file() and path != zip_path:
                 archive.write(path, path.relative_to(report_dir))
-        for name in ("index.md", "manifest.json", "user.json"):
-            path = out_dir / name
-            if path.exists():
-                archive.write(path, f"raw/{name}")
-        readme = PROJECT_ROOT / "README.md"
-        if readme.exists():
-            archive.write(readme, "raw/README.md")
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="eLabFTW GDPR Art. 15 report generator (HTML + PDF + ZIP)")
-    parser.add_argument("--out-dir", default=str(PROJECT_ROOT / "out"),
-                        help="raw export directory (produced by gdpr-export)")
-    parser.add_argument("--report-dir", default=str(PROJECT_ROOT / "report"),
-                        help="output directory for the HTML explorer and PDF")
-    args = parser.parse_args()
-
-    out_dir = Path(args.out_dir)
-    manifest = read_json(out_dir / "manifest.json")
+def build_report_for_user(user_dir: Path) -> int:
+    """Build HTML + PDF + ZIP for one user folder (must contain manifest.json)."""
+    manifest = read_json(user_dir / "manifest.json")
     if not manifest:
-        print(f"No export found in {out_dir} - run gdpr-export first")
+        print(f"No export found in {user_dir} - run the export first")
         return 1
     user = manifest.get("user") or {}
     uid = user.get("userid") or manifest.get("target_userid", "x")
 
-    report_dir = Path(args.report_dir)
-    if report_dir.exists():
-        shutil.rmtree(report_dir)
-    report_dir.mkdir(parents=True)
+    # clean only generated artifacts, keep the raw JSON export
+    for name in ("index.html", "entries", "assets", "files"):
+        path = user_dir / name
+        if path.is_dir():
+            shutil.rmtree(path)
+        elif path.exists():
+            path.unlink()
+    for pattern in ("Disclosure_User*.pdf", "gdpr_disclosure_User*.zip"):
+        for path in user_dir.glob(pattern):
+            path.unlink()
 
-    build_html_report(out_dir, report_dir)
-    pdf_path = report_dir / f"Disclosure_User{uid}.pdf"
-    build_pdf_report(out_dir, pdf_path)
+    build_html_report(user_dir, user_dir)
+    pdf_path = user_dir / f"Disclosure_User{uid}.pdf"
+    build_pdf_report(user_dir, pdf_path)
+    zip_path = user_dir / f"gdpr_disclosure_User{uid}.zip"
+    build_zip(user_dir, zip_path)
 
-    dist_dir = PROJECT_ROOT / "dist"
-    dist_dir.mkdir(exist_ok=True)
-    zip_path = dist_dir / f"gdpr_disclosure_User{uid}.zip"
-    build_zip(out_dir, report_dir, zip_path, uid)
-
-    print(f"HTML: {report_dir}/index.html")
+    print(f"HTML: {user_dir / 'index.html'}")
     print(f"PDF:  {pdf_path}")
     print(f"ZIP:  {zip_path} ({zip_path.stat().st_size // 1024} KB)")
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="eLabFTW GDPR Art. 15 report generator (HTML + PDF + ZIP)")
+    parser.add_argument("--out-dir", default=str(OUTPUT_DIR),
+                        help="base directory containing per-user export folders")
+    args = parser.parse_args()
+
+    base_dir = Path(args.out_dir)
+    # build reports for all user folders with an export; explicit --out-dir
+    # pointing at a single user folder also works
+    if (base_dir / "manifest.json").exists():
+        user_dirs = [base_dir]
+    else:
+        user_dirs = sorted(d for d in base_dir.glob("User*")
+                           if (d / "manifest.json").exists())
+    if not user_dirs:
+        print(f"No exports found under {base_dir} - run the export first")
+        return 1
+
+    ok = 0
+    for user_dir in user_dirs:
+        print(f"\n===== Report for {user_dir.name} =====")
+        ok += build_report_for_user(user_dir) == 0
+    print(f"\nBuilt {ok}/{len(user_dirs)} reports")
+    return 0 if ok == len(user_dirs) else 1
 
 
 if __name__ == "__main__":

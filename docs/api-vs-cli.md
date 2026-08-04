@@ -35,7 +35,7 @@ not on the URL target - verified in code:
 | sig_keys of other users | `SigKeys` is constructed with the requester (private key stays inaccessible - intended) |
 | users/{id}/uploads | `UserUploads` "forces the use of the requester" |
 
-→ For a disclosure about a **different** person: these 6 items via `sql/gdpr_cli.sql`.
+→ For a disclosure about a **different** person: these 6 items via `gdpr_cli.sql`.
 
 ## ❌ DB/CLI only - no API route exists
 
@@ -45,7 +45,7 @@ not on the URL target - verified in code:
 - **exclusive_edit_mode**, **lockout_devices** - no routes
 - **PHP session files**, **webserver logs** (IPs) - outside the database
 
-## CLI part: the SQL statements (`sql/gdpr_cli.sql`)
+## CLI part: the SQL statements (`gdpr_cli.sql`)
 
 The full statements - they target the tables that are unreachable via the API.
 **Status: written against the schema (`structure.sql`), not yet tested against
@@ -54,7 +54,7 @@ a live database** (no DB access to the instance).
 Run with (adjust the user ID first, `SET @uid = X`):
 
 ```bash
-docker exec -it elabftw elabctl mysql -e "SET @uid = 42; SOURCE sql/gdpr_cli.sql;"
+docker exec -it elabftw elabctl mysql -e "SET @uid = 42; SOURCE gdpr_cli.sql;"
 ```
 
 ```sql

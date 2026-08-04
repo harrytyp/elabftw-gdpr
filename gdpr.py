@@ -29,7 +29,7 @@ VENV_PYTHON = VENV_DIR / ("Scripts/python.exe" if os.name == "nt" else "bin/pyth
 
 
 def setup_environment() -> str:
-    """Create the venv and install the package on first run.
+    """Create the venv and install dependencies on first run.
 
     Returns the path to the venv Python interpreter.
     """
@@ -39,7 +39,7 @@ def setup_environment() -> str:
     print("[gdpr] First run - setting up Python environment...")
     subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
     subprocess.run([str(VENV_PYTHON), "-m", "pip", "install", "--quiet",
-                    "-e", str(PROJECT_ROOT)], check=True)
+                    "-r", str(PROJECT_ROOT / "requirements.txt")], check=True)
     return str(VENV_PYTHON)
 
 
@@ -71,22 +71,21 @@ def run() -> int:
 
     print("\n[gdpr] Exporting data...")
     export_result = subprocess.call(
-        [sys.executable, "-m", "elabftw_gdpr.export", *args])
+        [sys.executable, str(PROJECT_ROOT / "gdpr_export.py"), *args])
     if export_result != 0:
         return export_result
 
     if "--dry-run" not in args:
         print("\n[gdpr] Building report package...")
         report_result = subprocess.call(
-            [sys.executable, "-m", "elabftw_gdpr.report"])
+            [sys.executable, str(PROJECT_ROOT / "gdpr_report.py")])
         if report_result != 0:
             return report_result
 
     print("")
     print("[gdpr] Done.")
-    print(f"  HTML explorer: {PROJECT_ROOT / 'report' / 'index.html'}")
-    print(f"  PDF letter:    {PROJECT_ROOT / 'report' / 'Disclosure_User*.pdf'}")
-    print(f"  ZIP archive:   {PROJECT_ROOT / 'dist' / 'gdpr_disclosure_User*.zip'}")
+    print(f"  Results: {PROJECT_ROOT / 'output' / 'User*'}")
+    print("  Open the HTML explorer (output/User*/index.html) in your browser.")
     return 0
 
 
