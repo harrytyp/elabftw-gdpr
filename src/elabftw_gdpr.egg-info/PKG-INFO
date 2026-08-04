@@ -1,3 +1,23 @@
+Metadata-Version: 2.4
+Name: elabftw-gdpr
+Version: 0.1.0
+Summary: GDPR Art. 15 data subject access request tooling for eLabFTW (sysadmin API key + minimal DB part)
+License: MIT
+Keywords: elabftw,gdpr,dsgvo,data-subject-access-request,datenschutz
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Office/Business :: Office Suites
+Classifier: Topic :: Security
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: elabapy>=1.1.0
+Requires-Dist: pillow>=10.0
+Requires-Dist: reportlab>=4.0
+Dynamic: license-file
+
 # eLabFTW GDPR disclosure tooling
 
 Tooling to answer GDPR data subject access requests (Art. 15) for an

@@ -1,0 +1,3 @@
+elabapy>=1.1.0
+pillow>=10.0
+reportlab>=4.0

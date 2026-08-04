@@ -1,7 +1,8 @@
-# Daten & Secrets — nie teilen/committen
+# Data & secrets — never commit or share
 elabftw.env
 out/
 report/
+dist/
 *.zip
 
 # Python
