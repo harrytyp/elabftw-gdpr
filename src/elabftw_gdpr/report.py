@@ -1,4 +1,4 @@
-"""eLabFTW GDPR Art. 15 report generator — HTML explorer + PDF + ZIP.
+"""eLabFTW GDPR Art. 15 report generator - HTML explorer + PDF + ZIP.
 
 Turns a raw export (``out/``, produced by :mod:`elabftw_gdpr.export`) into a
 human-readable disclosure package:
@@ -71,7 +71,7 @@ def escape(value) -> str:
 
 
 def format_ts(value) -> str:
-    return str(value)[:16] if value else "—"
+    return str(value)[:16] if value else "-"
 
 
 def read_json(path: Path):
@@ -100,9 +100,9 @@ def pretty_notification_body(raw) -> str:
         except json.JSONDecodeError:
             return raw
     elif isinstance(raw, list):
-        return ", ".join(pretty_notification_body(x) for x in raw) or "—"
+        return ", ".join(pretty_notification_body(x) for x in raw) or "-"
     else:
-        return str(raw) if raw else "—"
+        return str(raw) if raw else "-"
     parts = []
     if data.get("msg"):
         parts.append(str(data["msg"]))
@@ -116,14 +116,14 @@ def pretty_notification_body(raw) -> str:
         elif event.get("id"):
             parts.append(f"Event ID: {event['id']}")
         if event.get("start"):
-            parts.append(f"{event['start']} – {event.get('end', '')}")
+            parts.append(f"{event['start']} - {event.get('end', '')}")
     if data.get("step_id"):
-        parts.append(f"Step {data['step_id']} (deadline {data.get('deadline', '—')})")
+        parts.append(f"Step {data['step_id']} (deadline {data.get('deadline', '-')})")
     if data.get("team"):
         parts.append(f"Team: {data['team']}")
     if data.get("userid"):
         parts.append(f"User: {data['userid']}")
-    return " · ".join(parts) or "—"
+    return " · ".join(parts) or "-"
 
 
 def user_in_group(group, userid) -> bool:
@@ -136,7 +136,7 @@ def user_in_group(group, userid) -> bool:
 def group_members(group) -> str:
     members = group.get("users") if isinstance(group, dict) else None
     if not isinstance(members, list):
-        return "—"
+        return "-"
     return ", ".join(str(m.get("fullname", m.get("userid"))) for m in members)
 
 
@@ -159,24 +159,24 @@ def resolve_status_category(entity: dict, entity_type: str, lookups: dict | None
 def entity_metadata(entity: dict, entity_type: str, lookups: dict | None = None) -> list:
     """Human-readable key/value metadata rows for an entity."""
     status_name, category_name = resolve_status_category(entity, entity_type, lookups)
-    status = entity.get("status") or entity.get("state") or "—"
+    status = entity.get("status") or entity.get("state") or "-"
     if status_name:
         status = f"{status} ({status_name})"
-    category = entity.get("category") or "—"
+    category = entity.get("category") or "-"
     if category_name:
         category = f"{category} ({category_name})"
     return [
-        ("ID / elabid", f"{entity.get('id')} / {entity.get('elabid', '—')}"),
+        ("ID / elabid", f"{entity.get('id')} / {entity.get('elabid', '-')}"),
         ("Created", format_ts(entity.get("created_at"))),
         ("Modified", format_ts(entity.get("modified_at"))),
-        ("Last changed by", entity.get("lastchangeby") or "—"),
+        ("Last changed by", entity.get("lastchangeby") or "-"),
         ("Status", status),
         ("Category", category),
         ("Locked", f"by {entity.get('lockedby')} since {format_ts(entity.get('locked_at'))}"
                    if entity.get("locked") else "no"),
         ("Timestamped", format_ts(entity.get("timestamped_at")) if entity.get("timestamped") else "no"),
-        ("Custom ID", entity.get("custom_id") or "—"),
-        ("Rating", entity.get("rating") or "—"),
+        ("Custom ID", entity.get("custom_id") or "-"),
+        ("Rating", entity.get("rating") or "-"),
     ]
 
 
@@ -233,7 +233,7 @@ def build_entity_page(out_dir: Path, report_dir: Path, assets_dir: Path,
     for revision in revisions:
         revisions_html += (
             f"<details><summary>Revision from {format_ts(revision.get('created_at'))} "
-            f"— {escape(revision.get('userid'))}</summary>"
+            f"- {escape(revision.get('userid'))}</summary>"
             f"<div class='body'>{escape(revision.get('body'))}</div></details>"
         )
 
@@ -263,7 +263,7 @@ def build_entity_page(out_dir: Path, report_dir: Path, assets_dir: Path,
 
     request_actions_html = "".join(
         f"<div class='entry'><b>{escape(r.get('action'))}</b> "
-        f"<span class='meta'>{format_ts(r.get('created_at'))} — by "
+        f"<span class='meta'>{format_ts(r.get('created_at'))} - by "
         f"{escape(r.get('requester_userid'))}, state {escape(r.get('state'))}</span></div>"
         for r in request_actions
     )
@@ -271,14 +271,14 @@ def build_entity_page(out_dir: Path, report_dir: Path, assets_dir: Path,
     body = entity.get("body") or ""
     page.write_text(f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<title>{escape(entity.get('title', entity_type))} — {entity_type} {eid}</title>
+<title>{escape(entity.get('title', entity_type))} - {entity_type} {eid}</title>
 <style>{CSS}</style></head><body><div class="wrap">
 <a class="back" href="../index.html">← Back to overview</a>
 <header><h1>{escape(entity.get('title', '(no title)'))}</h1>
-<p>{entity_type} #{eid} · elabid {escape(entity.get('elabid', '—'))} · modified {format_ts(entity.get('modified_at'))}</p></header>
+<p>{entity_type} #{eid} · elabid {escape(entity.get('elabid', '-'))} · modified {format_ts(entity.get('modified_at'))}</p></header>
 <h2>Metadata</h2><table>{meta_rows}</table>
 <h2>Content</h2><div class="body">{escape(body)}</div>
-<h2>Tags</h2><p>{tags_html or "<span class='meta'>—</span>"}</p>
+<h2>Tags</h2><p>{tags_html or "<span class='meta'>-</span>"}</p>
 <h2>Steps</h2><table><tr><th></th><th>Step</th></tr>{step_rows}</table>
 <h2>Comments ({len(comments)})</h2>{comments_html or "<p class='meta'>none</p>"}
 <h2>Revisions ({len(revisions)})</h2>{revisions_html or "<p class='meta'>none</p>"}
@@ -337,17 +337,17 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
     )
     group_rows = "".join(
         f"<tr><td>{escape(g.get('name') if isinstance(g, dict) else g)}</td>"
-        f"<td>{escape(g.get('id', '—'))}</td><td>{escape(group_members(g))}</td></tr>"
+        f"<td>{escape(g.get('id', '-'))}</td><td>{escape(group_members(g))}</td></tr>"
         for g in my_groups
     )
     procurement_rows = "".join(
         f"<tr><td>{format_ts(p.get('created_at'))}</td>"
-        f"<td>{escape(p.get('requester_fullname', p.get('requester_userid', '—')))}</td>"
-        f"<td>{p.get('entity_id', '—')}</td><td>{p.get('qty_ordered', '—')}</td>"
+        f"<td>{escape(p.get('requester_fullname', p.get('requester_userid', '-')))}</td>"
+        f"<td>{p.get('entity_id', '-')}</td><td>{p.get('qty_ordered', '-')}</td>"
         f"<td>{escape(p.get('state'))}</td></tr>" for p in procurement
     )
     booking_rows = "".join(
-        f"<tr><td>{format_ts(b.get('start'))} – {format_ts(b.get('end'))}</td>"
+        f"<tr><td>{format_ts(b.get('start'))} - {format_ts(b.get('end'))}</td>"
         f"<td>{escape(b.get('title'))}</td>"
         f"<td>{escape(b.get('item_title', b.get('item')))}</td></tr>" for b in bookings
     )
@@ -374,16 +374,16 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
 
     (report_dir / "index.html").write_text(f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<title>GDPR disclosure — {escape(user.get('fullname'))}</title>
+<title>GDPR disclosure - {escape(user.get('fullname'))}</title>
 <style>{CSS}</style></head><body><div class="wrap">
-<header><h1>GDPR data subject access request (Art. 15) — {escape(user.get('fullname'))}</h1>
+<header><h1>GDPR data subject access request (Art. 15) - {escape(user.get('fullname'))}</h1>
 <p>Email: {escape(user.get('email'))} · User ID: {escape(user.get('userid'))} · created: {format_ts(user.get('created_at'))}</p>
 <p>Last login: {format_ts(user.get('last_login'))} · Export created: {format_ts(manifest.get('exported_at'))}</p></header>
 
 <div class="notice"><b>Notice:</b> This report contains personal data and is intended
 for the data subject only. Third-party content (co-authors, reviewer comments, names in
 audit logs) must be redacted before sharing (Art. 15(4) GDPR). Raw values such as password
-hashes, MFA secrets or tokens are deliberately not included — they are only listed as
+hashes, MFA secrets or tokens are deliberately not included - they are only listed as
 categories (see PDF).</div>
 
 <h2>Overview</h2><div class="cards">{cards}</div>
@@ -437,7 +437,7 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
                            textColor=colors.HexColor("#555555"))
 
     story = [
-        Paragraph("GDPR data subject access request (Art. 15) — Summary", h1),
+        Paragraph("GDPR data subject access request (Art. 15) - Summary", h1),
         Paragraph(
             f"<b>{escape(user.get('fullname'))}</b><br/>Email: {escape(user.get('email'))} · "
             f"User ID: {escape(user.get('userid'))}<br/>Account created: {format_ts(user.get('created_at'))} · "
@@ -449,7 +449,7 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
             "(a) account data (name, email, organisation ID, team memberships, roles, login timestamps), "
             "(b) content you created (experiments, resources, templates, comments, revisions, steps, tags, links), "
             "(c) uploaded files, (d) bookings, notifications, group memberships, procurement requests, "
-            "request actions, (e) log/security data (audit trail, login attempts — categories only, see 4).",
+            "request actions, (e) log/security data (audit trail, login attempts - categories only, see 4).",
             body),
         Paragraph("2. Scope of the copy", h2),
         Paragraph(
@@ -495,7 +495,7 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
             "Third-party portions of shared content may have been redacted (Art. 15(4) GDPR).", body),
         Paragraph("5. Your rights", h2),
         Paragraph(
-            "Rectification (Art. 16), erasure (Art. 17 — subject to legal retention obligations), "
+            "Rectification (Art. 16), erasure (Art. 17 - subject to legal retention obligations), "
             "restriction (Art. 18), data portability (Art. 20), objection (Art. 21) and the right to "
             "lodge a complaint with the supervisory authority. This disclosure was provided within the "
             "time limit of Art. 12(3) GDPR.", body),
@@ -537,7 +537,7 @@ def main() -> int:
     out_dir = Path(args.out_dir)
     manifest = read_json(out_dir / "manifest.json")
     if not manifest:
-        print(f"No export found in {out_dir} — run gdpr-export first")
+        print(f"No export found in {out_dir} - run gdpr-export first")
         return 1
     user = manifest.get("user") or {}
     uid = user.get("userid") or manifest.get("target_userid", "x")

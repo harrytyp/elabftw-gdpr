@@ -1,6 +1,6 @@
 # GDPR: Legal framing of the disclosure (Art. 15)
 
-Summary of the supervisory-authority and case-law line. **Not legal advice** —
+Summary of the supervisory-authority and case-law line. **Not legal advice** -
 for a real request with dispute potential, involve the data protection officer.
 
 ## Principle: disclosure ≠ data dump
@@ -27,7 +27,7 @@ third-party data (Art. 15(4)) and an unintelligible form (formal defect).
    a security requirement, Art. 32).
 4. **Internal note without personal reference?** Not disclosable (CJEU C-141/12,
    C-372/12 "YS"): pure legal/professional assessment in memos is not covered.
-5. **Is a copy of the document owed?** No — CJEU C-487/21 ("CRIF",
+5. **Is a copy of the document owed?** No - CJEU C-487/21 ("CRIF",
    04.05.2023): what is owed is a copy of the **data**; a structured, complete
    summary suffices. Raw SQL dumps are neither required nor correct
    (unintelligible + third-party data).
@@ -35,21 +35,21 @@ third-party data (Art. 15(4)) and an unintelligible form (formal defect).
 ## What MUST be in the disclosure (including the uncomfortable bits)
 
 - Account data + metadata (last login, roles, validity)
-- Own content — **including professional content** (CJEU C-434/16 "Nowak":
+- Own content - **including professional content** (CJEU C-434/16 "Nowak":
   no de-minimis threshold; exam/work data is personal data)
 - **Data about the person in other people's entries** (e.g. comments about
-  them) — CJEU C-252/21 ("Meta"): disclosure also covers data from third
+  them) - CJEU C-252/21 ("Meta"): disclosure also covers data from third
   sources
 - Login timestamps/IPs, if stored (CJEU C-582/14 "Breyer": IPs are personal
-  data) — the eLabFTW DB stores **no** IPs, only possibly webserver logs
-- Audit-trail entries concerning the person — **but**: § 34 BDSG allows
+  data) - the eLabFTW DB stores **no** IPs, only possibly webserver logs
+- Audit-trail entries concerning the person - **but**: § 34 BDSG allows
   restrictions for log/protocol data (case-by-case), and third-party parts
   ("who changed what") must be redacted
 - Notifications, export history, procurement requests, failed logins
 
 ## What is NOT handed out
 
-- Third-party data (Art. 15(4)) — even inside "own" entries
+- Third-party data (Art. 15(4)) - even inside "own" entries
 - Password hash, MFA secret, reset token, API key hashes, signing private
   keys, device/session tokens
 - Internal memos without personal reference (CJEU YS)
@@ -66,22 +66,22 @@ third-party data (Art. 15(4)) and an unintelligible form (formal defect).
   with justification for complex cases; Recital 63 allows asking for
   specification for very large inventories.
 - **Self-service:** if the person still has account access, their own profile
-  export is the DSK-preferred solution (Recital 63) — only the data they
+  export is the DSK-preferred solution (Recital 63) - only the data they
   cannot see themselves (logs, account history) needs to be added.
 - **Form:** readable document (PDF) + machine-readable for electronic requests
-  (Art. 15(3) sentence 2) — the ELN/ZIP export is suitable.
+  (Art. 15(3) sentence 2) - the ELN/ZIP export is suitable.
 - **Costs:** first copy free; further copies and manifestly excessive requests
-  may be charged (Art. 12(5)) — burden of proof on the controller.
+  may be charged (Art. 12(5)) - burden of proof on the controller.
 - **Document (Art. 5(2)):** what was checked, delivered, redacted and why.
 
 ## eLabFTW / lab notebook specifics
 
-- **Timestamped PDFs** are signed and immutable — unproblematic for the
+- **Timestamped PDFs** are signed and immutable - unproblematic for the
   disclosure (just provide them), relevant for erasure (Art. 17):
   retention obligations (GxP, § 257 HGB) can block deletion
-  (Art. 17(3)(b)) — anonymisation as middle ground. The eLabFTW
+  (Art. 17(3)(b)) - anonymisation as middle ground. The eLabFTW
   maintainer's position: [issue #3731](https://github.com/elabftw/elabftw/issues/3731).
-- **SAML/LDAP:** the IdP processes data too — the disclosure may need to
+- **SAML/LDAP:** the IdP processes data too - the disclosure may need to
   cover it as well.
 
 ## Sources

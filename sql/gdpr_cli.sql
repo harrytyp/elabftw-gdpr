@@ -1,5 +1,5 @@
 -- ============================================================================
--- eLabFTW — GDPR Art. 15 disclosure: DB/CLI part (complements the API export)
+-- eLabFTW - GDPR Art. 15 disclosure: DB/CLI part (complements the API export)
 -- ============================================================================
 -- Run with the data subject's user ID:
 --   docker exec -it elabftw elabctl mysql -e "SET @uid = 42; SOURCE gdpr_cli.sql;"
@@ -25,7 +25,7 @@ SELECT created_at, category, requester_userid, target_userid, body
 -- 2) Failed login attempts (authfail)
 SELECT attempt_time FROM authfail WHERE users_id = @uid ORDER BY attempt_time;
 
--- 3) Changelog (change history) — entries by the user only
+-- 3) Changelog (change history) - entries by the user only
 SELECT 'experiments' AS type, created_at, target, content
   FROM experiments_changelog WHERE users_id = @uid
 UNION ALL
@@ -39,7 +39,7 @@ SELECT 'items_types', created_at, target, content
   FROM items_types_changelog WHERE users_id = @uid
 ORDER BY created_at;
 
--- 4) API keys of the user (metadata only — hash is NOT selected!)
+-- 4) API keys of the user (metadata only - hash is NOT selected!)
 SELECT id, name, created_at, last_used_at, can_write, team
   FROM api_keys WHERE userid = @uid ORDER BY created_at;
 
@@ -50,7 +50,7 @@ SELECT id, created_at, state, format, long_name, filesize
 -- 6) Todolist (private notes)
 SELECT body, creation_time FROM todolist WHERE userid = @uid ORDER BY creation_time;
 
--- 7) Signing keys — metadata only, privkey NEVER exported!
+-- 7) Signing keys - metadata only, privkey NEVER exported!
 SELECT id, created_at, last_used_at, state, type FROM sig_keys WHERE userid = @uid;
 
 -- 8) ROR affiliation + favourites/pins (preferences)

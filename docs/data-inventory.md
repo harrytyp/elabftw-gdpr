@@ -24,15 +24,15 @@ rating for the Art. 15 disclosure:
 
 | Table | Rating | Rationale |
 |---|---|---|
-| experiments, items, experiments_templates, items_types | ✅ | title, body, metadata, custom_id, category/status, created/modified, lastchangeby, lockedby, timestampedby, last_signed_by — **redact third-party parts** |
+| experiments, items, experiments_templates, items_types | ✅ | title, body, metadata, custom_id, category/status, created/modified, lastchangeby, lockedby, timestampedby, last_signed_by - **redact third-party parts** |
 | \*_comments | ✅ | own comments + comments by others **about** the person |
 | \*_revisions | ✅ | own versions (body, userid) |
 | \*_changelog | ✅ | change history (users_id, target, content) |
 | uploads | ✅ | real_name (original file name!), comment, created_at, userid + **the file itself**; hash/storage 🟡 |
-| todolist | ✅ | private notes — often forgotten |
+| todolist | ✅ | private notes - often forgotten |
 | team_events (bookings) | ✅ | booker + time range + resource |
 | tags2entity, \*_steps, link tables | ✅ | part of the entities |
-| access_key (anonymous share links) | 🟡 | state "link created" — **token ❌** |
+| access_key (anonymous share links) | 🟡 | state "link created" - **token ❌** |
 | pin_\*2users, favtags2users | 🟡 | preferences |
 
 ## 3. Usage and interaction traces
@@ -45,7 +45,7 @@ rating for the Art. 15 disclosure:
 | \*_request_actions | ✅ | requester/target_userid + action |
 | procurement_requests | ✅ | purchase requests (requester_userid, body, qty) |
 | authfail | ✅ | failed logins (timestamps); **device_token ❌** |
-| sig_keys | 🟡 | "signing key exists, last used at …" — **privkey ❌** |
+| sig_keys | 🟡 | "signing key exists, last used at …" - **privkey ❌** |
 | lockout_devices, \*_edit_mode | 🟡 | transient lock states |
 
 ## 4. Not personal data (❌)
@@ -60,6 +60,6 @@ tables, `tags` (team level), `compounds` + `compounds2*`, `instance2rors`,
 |---|---|---|
 | PHP session files | 🟡 | transient, category only |
 | upload files on disk/S3 | ✅ | covered via `uploads` |
-| webserver logs (nginx: IP addresses!) | 🟡 | **the eLabFTW DB has no IP columns** — IPs only live in webserver logs; clarify retention |
+| webserver logs (nginx: IP addresses!) | 🟡 | **the eLabFTW DB has no IP columns** - IPs only live in webserver logs; clarify retention |
 | backups (DB dump + files) | 🟡 | category + rotation period |
 | timestamped PDFs | ✅ | provide, mark as immutable |

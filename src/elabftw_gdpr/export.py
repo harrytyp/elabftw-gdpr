@@ -1,10 +1,10 @@
-"""eLabFTW GDPR Art. 15 data export — API part.
+"""eLabFTW GDPR Art. 15 data export - API part.
 
 Pulls all personal data of a target user that is reachable through the
 eLabFTW REST API v2 using a sysadmin API key, via the official elabapy
 wrapper. Output: structured JSON under ``out/`` (see README).
 
-NOT covered by the API (needs DB/CLI access — see ``sql/gdpr_cli.sql``):
+NOT covered by the API (needs DB/CLI access - see ``sql/gdpr_cli.sql``):
   audit_logs, authfail, changelog (structured), other users' api_keys,
   exports, todolist, unfinished_steps, favtags, pins, sig_keys,
   exclusive_edit_mode, lockout_devices
@@ -289,7 +289,7 @@ def main() -> int:
 
     # --- 10. Readable summary (index.md) --------------------------------------
     lines = [
-        f"# eLabFTW GDPR disclosure — User {target} ({user.get('fullname')})",
+        f"# eLabFTW GDPR disclosure - User {target} ({user.get('fullname')})",
         "",
         f"Email: {user.get('email')}  |  Created: {user.get('created_at')}  |  "
         f"Last login: {user.get('last_login')}",

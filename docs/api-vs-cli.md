@@ -9,7 +9,7 @@ UserRequestActions/Scheduler/TeamGroups) and the OpenAPI spec
 
 | Data | Endpoint |
 |---|---|
-| account data + teams + roles | `GET /users/{id}` — all fields except password_hash, mfa_secret, token, sig_privkey (removed in code) |
+| account data + teams + roles | `GET /users/{id}` - all fields except password_hash, mfa_secret, token, sig_privkey (removed in code) |
 | ROR affiliation | `GET /users/{id}/rors` |
 | request actions targeting the user | `GET /users/{id}/request_actions` (filters target_userid) |
 | notifications | `GET /users/{id}/notifications` |
@@ -17,37 +17,37 @@ UserRequestActions/Scheduler/TeamGroups) and the OpenAPI spec
 | entities + content | `GET /experiments?owner=X&scope=3&state=1,2,3` (+ items, experiments_templates, items_types); per entry: comments, revisions, steps, tags, uploads, request_actions |
 | bookings | `GET /events?eventOwner=X` |
 | procurement requests | `GET /teams/{id}/procurement_requests` (filter requester_userid) |
-| entity as archive | `GET /experiments/{id}?format=eln|zip|pdf` |
-| changelog (workaround) | no own route — but `format=pdf&changelog=1` embeds the change history into the PDF export |
+| entity as archive | `GET /experiments/{id}?format=eln\|zip\|pdf` |
+| changelog (workaround) | no own route - but `format=pdf&changelog=1` embeds the change history into the PDF export |
 | trigger export jobs | `POST /exports` |
 | instance/team config, reports | `GET /config`, `/teams`, `/instance`, `/reports` |
 
-## 🔶 Self-scoped trap — not readable for other users, even as sysadmin
+## 🔶 Self-scoped trap - not readable for other users, even as sysadmin
 
 These endpoints hard-filter on `WHERE userid = requester` (the key owner),
-not on the URL target — verified in code:
+not on the URL target - verified in code:
 
 | Data | Evidence |
 |---|---|
 | api_keys of other users | `ApiKeys::readAll`: `WHERE ak.userid = :userid` (requester) |
 | exports of other users | `Exports::readAll`: `WHERE requester_userid = requester` |
 | todolist, unfinished_steps, favtags | self-scoped; **pins have no route at all** |
-| sig_keys of other users | `SigKeys` is constructed with the requester (private key stays inaccessible — intended) |
+| sig_keys of other users | `SigKeys` is constructed with the requester (private key stays inaccessible - intended) |
 | users/{id}/uploads | `UserUploads` "forces the use of the requester" |
 
 → For a disclosure about a **different** person: these 6 items via `sql/gdpr_cli.sql`.
 
-## ❌ DB/CLI only — no API route exists
+## ❌ DB/CLI only - no API route exists
 
-- **audit_logs** (audit trail) — model exists, no route in the ApiEndpoint enum
-- **authfail** (failed logins) — same
+- **audit_logs** (audit trail) - model exists, no route in the ApiEndpoint enum
+- **authfail** (failed logins) - same
 - **changelog** as structured data (only the PDF workaround, see above)
-- **exclusive_edit_mode**, **lockout_devices** — no routes
-- **PHP session files**, **webserver logs** (IPs) — outside the database
+- **exclusive_edit_mode**, **lockout_devices** - no routes
+- **PHP session files**, **webserver logs** (IPs) - outside the database
 
 ## CLI part: the SQL statements (`sql/gdpr_cli.sql`)
 
-The full statements — they target the tables that are unreachable via the API.
+The full statements - they target the tables that are unreachable via the API.
 **Status: written against the schema (`structure.sql`), not yet tested against
 a live database** (no DB access to the instance).
 
@@ -66,7 +66,7 @@ SELECT created_at, category, requester_userid, target_userid, body
 -- 2) Failed login attempts
 SELECT attempt_time FROM authfail WHERE users_id = @uid ORDER BY attempt_time;
 
--- 3) Changelog (change history) — entries by the user only
+-- 3) Changelog (change history) - entries by the user only
 SELECT 'experiments' AS type, created_at, target, content
   FROM experiments_changelog WHERE users_id = @uid
 UNION ALL
@@ -80,7 +80,7 @@ SELECT 'items_types', created_at, target, content
   FROM items_types_changelog WHERE users_id = @uid
 ORDER BY created_at;
 
--- 4) API keys of the user (metadata only — hash is NOT selected!)
+-- 4) API keys of the user (metadata only - hash is NOT selected!)
 SELECT id, name, created_at, last_used_at, can_write, team
   FROM api_keys WHERE userid = @uid ORDER BY created_at;
 
@@ -91,7 +91,7 @@ SELECT id, created_at, state, format, long_name, filesize
 -- 6) Todolist (private notes)
 SELECT body, creation_time FROM todolist WHERE userid = @uid ORDER BY creation_time;
 
--- 7) Signing keys — metadata only, privkey NEVER exported!
+-- 7) Signing keys - metadata only, privkey NEVER exported!
 SELECT id, created_at, last_used_at, state, type FROM sig_keys WHERE userid = @uid;
 
 -- 8) ROR affiliation + favourites/pins (preferences)
@@ -104,5 +104,5 @@ SELECT entity_id FROM pin_items_types2users WHERE users_id = @uid;
 ```
 
 Do not export via SQL (category only): `users.password_hash`,
-`users.mfa_secret`, `users.token`, `api_keys.hash`, `sig_keys.privkey` —
+`users.mfa_secret`, `users.token`, `api_keys.hash`, `sig_keys.privkey` -
 as well as `lockout_devices`/`exclusive_edit_mode` (transient lock states).

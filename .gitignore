@@ -1,4 +1,4 @@
-# Data & secrets — never commit or share
+# Data & secrets - never commit or share
 elabftw.env
 out/
 report/
