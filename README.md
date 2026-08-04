@@ -28,30 +28,41 @@ sql/gdpr_cli.sql  →  DB extract  (only what the API does not cover)
 Detailed mapping of what works via API and what does not:
 [docs/api-vs-cli.md](docs/api-vs-cli.md)
 
-## Setup
+## Quickstart
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -e .
-
-cp elabftw.env.example elabftw.env
-# fill in: instance URL, sysadmin API key, user ID of the data subject
-chmod 600 elabftw.env
+./gdpr.sh
 ```
 
-## Usage
+That is it. On first run the script sets up the Python environment and asks
+for the instance URL, sysadmin API key and user ID once (stored in
+`elabftw.env`, chmod 600, gitignored). Then it exports all data and builds
+the report package:
+
+```
+HTML explorer: report/index.html   <- open in your browser
+PDF letter:    report/Disclosure_UserX.pdf
+ZIP archive:   dist/gdpr_disclosure_UserX.zip
+```
+
+Useful variants:
 
 ```bash
-# 1) Export (count first, then full):
-gdpr-export --dry-run
-gdpr-export                 # including upload file contents
-gdpr-export --no-files      # metadata only (small archives)
+./gdpr.sh --dry-run      # only fetch and count, write nothing
+./gdpr.sh --no-files     # skip upload file contents (small archives)
+```
 
-# 2) Build the report package:
-gdpr-report
+The DB-only part (audit trail, failed logins, ...) is documented in
+[sql/gdpr_cli.sql](sql/gdpr_cli.sql) - run it once per request if you have
+database access. Everything else is automated.
 
-# 3) DB part (only with DB access, e.g. elabctl mysql):
-docker exec -it elabftw elabctl mysql -e "SET @uid = X; SOURCE sql/gdpr_cli.sql;"
+## Advanced usage
+
+The two CLI entry points behind `gdpr.sh` can also be run directly:
+
+```bash
+.venv/bin/gdpr-export --dry-run      # export (see --help for options)
+.venv/bin/gdpr-report                # build report package from out/
 ```
 
 The HTML explorer opens in the browser (`report/index.html`) - no server needed.
@@ -85,20 +96,21 @@ See [docs/gdpr-legal.md](docs/gdpr-legal.md) - in short:
 
 ```
 elabftw-gdpr/
-├── README.md                  ← this file
-├── LICENSE                    ← MIT
-├── pyproject.toml             ← package metadata + dependencies + CLI entry points
-├── elabftw.env.example        ← credentials template (never commit the real one!)
+├── gdpr.sh                  <- one-command entry point (setup + export + report)
+├── README.md                <- this file
+├── LICENSE                  <- MIT
+├── pyproject.toml           <- package metadata + dependencies + CLI entry points
+├── elabftw.env.example      <- credentials template (never commit the real one!)
 ├── src/elabftw_gdpr/
-│   ├── __init__.py            ← package version
-│   ├── export.py              ← API export (elabapy wrapper)
-│   └── report.py              ← HTML explorer + PDF letter + ZIP archive
+│   ├── __init__.py          <- package version
+│   ├── export.py            <- API export (elabapy wrapper)
+│   └── report.py            <- HTML explorer + PDF letter + ZIP archive
 ├── sql/
-│   └── gdpr_cli.sql           ← DB part for the API gaps
+│   └── gdpr_cli.sql         <- DB part for the API gaps
 └── docs/
-    ├── data-inventory.md      ← what eLabFTW stores about a person
-    ├── api-vs-cli.md          ← API endpoints vs. DB/CLI (with code evidence)
-    └── gdpr-legal.md          ← Art. 15 framing, deadlines, sources
+    ├── data-inventory.md    <- what eLabFTW stores about a person
+    ├── api-vs-cli.md        <- API endpoints vs. DB/CLI (with code evidence)
+    └── gdpr-legal.md        <- Art. 15 framing, deadlines, sources
 ```
 
 `out/`, `report/`, `dist/`, `.venv/` and `elabftw.env` are local
