@@ -18,31 +18,48 @@ gdpr.bat
 ```
 
 On first run the script sets up the Python environment (venv + `pip install`)
-and asks for the instance URL, sysadmin API key and user ID(s) once (stored
-in `elabftw.env`, chmod 600, gitignored). Then it exports all data and builds
-the report package.
-
-Support for multiple users: put several IDs comma-separated in
-`elabftw.env` (e.g. `ELAB_USERID=75,82,130`) - each user gets their own
-folder:
+and asks for the instance URL, sysadmin API key and user ID(s) once
+(stored in `elabftw.env`, chmod 600, gitignored). If no user ID is entered,
+it shows the user list from the instance for selection. Then it exports all
+data and builds the report package:
 
 ```
-output/User75/index.html          <- HTML explorer (open in browser)
+output/User75/index.html            <- HTML explorer (open in browser)
 output/User75/Disclosure_User75.pdf
 output/User75/gdpr_disclosure_User75.zip
-output/User82/...                 <- second user, and so on
+output/gdpr.log                     <- run log (Art. 5(2) GDPR accountability)
 ```
 
-Useful variants:
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `gdpr.py` (default: `all`) | export + report for the configured users |
+| `gdpr.py export` | API export only |
+| `gdpr.py report` | build report package from existing exports |
+| `gdpr.py users` | list users visible to the sysadmin key |
+| `gdpr.py status` | show what is in `output/` (exports + PDF/ZIP per user) |
+| `gdpr.py config show` | show config (never the key) |
+| `gdpr.py config set userid 75,82` | update user IDs in the env file |
+
+Shared options: `--dry-run` (count only), `--no-files` (skip file downloads),
+`--users 75,82` (override user IDs), `--json` (machine-readable output),
+`--env-file PATH` (different credentials file), `--no-color`.
+
+Examples:
 
 ```bash
-./gdpr.py --dry-run      # only fetch and count, write nothing
-./gdpr.py --no-files     # skip upload file contents (small exports, fast)
+./gdpr.py --dry-run                  # count only, write nothing
+./gdpr.py export --no-files          # metadata only (fast, small)
+./gdpr.py export --users 75,82 --json
+./gdpr.py report --user 75           # rebuild report for one user
+./gdpr.py users                      # find user IDs
+./gdpr.py status --json
 ```
 
-The DB-only part (audit trail, failed logins, ...) is documented in
-[gdpr_cli.sql](gdpr_cli.sql) - run it once per request if you have database
-access. Everything else is automated.
+Multiple users: put several IDs in `elabftw.env`
+(`ELAB_USERID=75,82,130`) or pass `--users` - each user gets their own
+folder under `output/`.
 
 ## What the export covers
 
@@ -61,6 +78,13 @@ authfail, changelog (structured), other users' api_keys/exports/todolist/
 unfinished_steps/favtags/pins/sig_keys, exclusive_edit_mode, lockout_devices.
 Detailed mapping: [docs/api-vs-cli.md](docs/api-vs-cli.md)
 
+## Tab completion (Linux/macOS, optional)
+
+```bash
+.venv/bin/pip install argcomplete
+echo 'eval "$(register-python-argcomplete gdpr.py)"' >> ~/.bashrc
+```
+
 ## Before sending the disclosure
 
 See [docs/gdpr-legal.md](docs/gdpr-legal.md) - in short:
@@ -77,7 +101,7 @@ See [docs/gdpr-legal.md](docs/gdpr-legal.md) - in short:
 
 ```
 elabftw-gdpr/
-├── gdpr.py                  <- entry point (cross-platform, runs everything)
+├── gdpr.py                  <- CLI entry point (cross-platform, subcommands)
 ├── gdpr.bat                 <- Windows wrapper (double-click)
 ├── gdpr_export.py           <- API export module
 ├── gdpr_report.py           <- report module (HTML explorer + PDF + ZIP)
@@ -103,5 +127,6 @@ fully readable/runnable without instance access.
 - Known elabapy pitfall: `send_req()` sends parameters as request body
   instead of query string by default - all query calls therefore use
   `param_name="params"`.
+- Colored output is auto-disabled for pipes/cron and honors `NO_COLOR`.
 - For very large archives: use `--no-files` and provide files separately.
 - Not legal advice - involve a DPO/lawyer in dispute cases.

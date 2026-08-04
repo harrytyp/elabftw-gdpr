@@ -552,31 +552,50 @@ def build_report_for_user(user_dir: Path) -> int:
     return 0
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="eLabFTW GDPR Art. 15 report generator (HTML + PDF + ZIP)")
-    parser.add_argument("--out-dir", default=str(OUTPUT_DIR),
-                        help="base directory containing per-user export folders")
-    args = parser.parse_args()
+def build_reports(base_dir: Path, user_filter: list[int] | None = None) -> dict:
+    """Build reports for all user folders with an export (or a subset).
 
-    base_dir = Path(args.out_dir)
-    # build reports for all user folders with an export; explicit --out-dir
-    # pointing at a single user folder also works
+    Returns {user_dir_name: 0|1} (1 = report built successfully).
+    """
     if (base_dir / "manifest.json").exists():
         user_dirs = [base_dir]
     else:
         user_dirs = sorted(d for d in base_dir.glob("User*")
                            if (d / "manifest.json").exists())
+    if user_filter:
+        user_dirs = [d for d in user_dirs
+                     if d.name.removeprefix("User").isdigit()
+                     and int(d.name.removeprefix("User")) in user_filter]
     if not user_dirs:
         print(f"No exports found under {base_dir} - run the export first")
-        return 1
+        return {}
 
-    ok = 0
+    results = {}
     for user_dir in user_dirs:
         print(f"\n===== Report for {user_dir.name} =====")
-        ok += build_report_for_user(user_dir) == 0
-    print(f"\nBuilt {ok}/{len(user_dirs)} reports")
-    return 0 if ok == len(user_dirs) else 1
+        results[user_dir.name] = build_report_for_user(user_dir)
+    ok = sum(1 for v in results.values() if v == 0)
+    print(f"\nBuilt {ok}/{len(results)} reports")
+    return results
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="eLabFTW GDPR Art. 15 report generator (HTML + PDF + ZIP)")
+    parser.add_argument("--out-dir", default=str(OUTPUT_DIR),
+                        help="base directory containing per-user export folders")
+    parser.add_argument("--user", default=None,
+                        help="comma-separated user IDs to build reports for "
+                             "(default: all exported users)")
+    args = parser.parse_args()
+
+    user_filter = None
+    if args.user:
+        user_filter = [int(x) for x in args.user.replace(" ", "").split(",") if x]
+    results = build_reports(Path(args.out_dir), user_filter)
+    if not results:
+        return 1
+    return 0 if all(v == 0 for v in results.values()) else 1
 
 
 if __name__ == "__main__":

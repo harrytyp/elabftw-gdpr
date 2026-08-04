@@ -3,3 +3,4 @@
 elabapy>=1.1.0     # official eLabFTW API wrapper (pulls in requests)
 pillow>=10.0       # thumbnails for the HTML explorer
 reportlab>=4.0     # PDF disclosure letter
+# argcomplete>=3.0  # optional: tab completion (Linux/macOS), see README
