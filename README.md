@@ -53,6 +53,25 @@ The Windows launcher uses `pushd`, so the repository also works directly from
 an UNC path such as `\\server\\share\\elabftw-gdpr`. Its Python virtual
 environment is kept locally under `%LOCALAPPDATA%` in that case.
 
+### Windows without admin rights, on network shares
+
+- **No admin rights needed:** the venv is created under `%LOCALAPPDATA%`
+  (per-user, never on the share), so `pip install` works without elevation.
+- **Python installation:** if the launcher `py` or `python` is missing,
+  `gdpr.bat` shows instructions. Install Python from python.org and choose
+  "Install Now" - this installs for the current user only, no admin rights.
+  The `--version` probe skips the Microsoft Store app aliases that would
+  otherwise open the Store instead of running Python.
+- **Unicode:** `gdpr.bat` sets `PYTHONUTF8=1`, so umlauts and other non-ASCII
+  characters work on German/cp1252 consoles without `UnicodeEncodeError`.
+- **Network shares:** `pushd` maps the share to a temporary drive letter, so
+  the tool runs directly from `\\server\\share\\...`. The share must be
+  writable for `output/` and `elabftw.env`. If it is read-only, the log falls
+  back to `%LOCALAPPDATA%` and you can export to a local folder instead:
+  `gdpr.py all --out-dir C:\path\to\output`.
+- **Colors:** on Windows 10+ consoles ANSI colors are enabled via colorama;
+  on older Windows they stay disabled automatically.
+
 After an API export, the tool prints the remaining DB/CLI steps. The API
 export is not the complete disclosure: audit logs, failed login attempts and
 some self-scoped metadata require the separate `gdpr_cli.sql` workflow. See

@@ -76,14 +76,23 @@ def color(text: str, style: str = "bold") -> str:
 def setup_logging() -> None:
     OUTPUT_DIR.mkdir(exist_ok=True)
     fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
-    file_handler.setFormatter(fmt)
+    log_file = LOG_FILE
+    try:
+        handler = logging.FileHandler(log_file, encoding="utf-8")
+    except OSError:
+        # Read-only network share: fall back to a local log file.
+        local_dir = Path(os.environ.get("LOCALAPPDATA", PROJECT_ROOT)) / "elabftw_gdpr"
+        local_dir.mkdir(parents=True, exist_ok=True)
+        log_file = local_dir / "gdpr.log"
+        handler = logging.FileHandler(log_file, encoding="utf-8")
+        print(f"[gdpr] output/ not writable - log goes to {log_file}")
+    handler.setFormatter(fmt)
     stream_handler = logging.StreamHandler(sys.stderr)
     stream_handler.setFormatter(fmt)
     stream_handler.setLevel(logging.WARNING)  # terminal: warnings/errors only
     root = logging.getLogger()
     root.setLevel(logging.INFO)
-    root.addHandler(file_handler)
+    root.addHandler(handler)
     root.addHandler(stream_handler)
 
 
@@ -433,10 +442,20 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     # Enable ANSI support in Windows 10+ CMD/PowerShell through colorama.
-    # Pipes and NO_COLOR are still handled by color().
+    # On older Windows consoles ANSI sequences would show as garbage, so
+    # colors stay disabled there. Pipes and NO_COLOR are handled by color().
     if just_fix_windows_console is not None:
         just_fix_windows_console()
-    python = setup_environment()
+    if os.name == "nt" and sys.getwindowsversion().major < 10:
+        global _COLOR_DISABLED
+        _COLOR_DISABLED = True
+    try:
+        python = setup_environment()
+    except Exception as exc:
+        print(f"[gdpr] Python environment setup failed: {exc}")
+        print("[gdpr] Check the message above. On Windows the venv lives in "
+              f"{VENV_DIR} (no admin rights needed).")
+        return 1
 
     # Re-execute inside the venv so all dependencies are importable.
     # NOTE: compare paths as strings - venv pythons are symlinks, so
@@ -453,7 +472,6 @@ def main() -> int:
         pass  # optional: pip install argcomplete for tab completion
     args = parser.parse_args()
 
-    global _COLOR_DISABLED
     _COLOR_DISABLED = args.no_color or os.environ.get("NO_COLOR") is not None
 
     command = args.command or "all"
