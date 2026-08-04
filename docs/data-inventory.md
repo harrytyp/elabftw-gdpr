@@ -1,6 +1,6 @@
 # Data inventory: What does eLabFTW store about a person?
 
-Inventory based on the database schema (`src/sql/structure.sql` in the eLabFTW
+Inventory based on the eLabFTW database schema (`structure.sql` in the eLabFTW
 repository, main branch, 75 tables) and the REST API schemas. Traffic-light
 rating for the Art. 15 disclosure:
 

@@ -46,6 +46,29 @@ Shared options: `--dry-run` (count only), `--no-files` (skip file downloads),
 `--users 75,82` (override user IDs), `--json` (machine-readable output),
 `--env-file PATH` (different credentials file), `--no-color`.
 
+Color output works in Windows CMD and PowerShell through `colorama`. It is
+automatically disabled when stdout is redirected or piped, and can always be
+disabled explicitly with `--no-color` or the `NO_COLOR` environment variable.
+The Windows launcher uses `pushd`, so the repository also works directly from
+an UNC path such as `\\server\\share\\elabftw-gdpr`. Its Python virtual
+environment is kept locally under `%LOCALAPPDATA%` in that case.
+
+After an API export, the tool prints the remaining DB/CLI steps. The API
+export is not the complete disclosure: audit logs, failed login attempts and
+some self-scoped metadata require the separate `gdpr_cli.sql` workflow. See
+[docs/api-vs-cli.md](docs/api-vs-cli.md) before sending the package. Review
+and redact third-party data before disclosure.
+
+The run log is `output/gdpr.log`. It documents the processing run for
+accountability, but it is not the complete disclosure and may need to be
+retrieved or supplemented through the relevant administrator or database
+tooling.
+
+> Do not use `--json` as an export archive. It is a summary intended for
+> scripts and automation; the actual data package is written below
+> `output/User<id>/`.
+
+
 Examples:
 
 ```bash
@@ -77,6 +100,22 @@ Per user (in `output/User<id>/`):
 authfail, changelog (structured), other users' api_keys/exports/todolist/
 unfinished_steps/favtags/pins/sig_keys, exclusive_edit_mode, lockout_devices.
 Detailed mapping: [docs/api-vs-cli.md](docs/api-vs-cli.md)
+
+The API export is not the complete disclosure by itself. The DB-only part
+(audit trail, failed logins, self-scoped exports/todolists and related data)
+is documented in [gdpr_cli.sql](gdpr_cli.sql) and
+[docs/api-vs-cli.md](docs/api-vs-cli.md). Run that separate step once per
+request if you have database access, then review and redact third-party data
+before sending the disclosure. The CLI prints these next steps after every
+non-JSON export or full-run command.
+
+The run log is written to `output/gdpr.log`. It records the processing run for
+accountability, but it is not itself the complete disclosure. If logs or the
+DB-only data must be retrieved from another system, use the documented SQL/CLI
+step and the relevant administrator tooling.
+
+Everything else is automated.
+
 
 ## Tab completion (Linux/macOS, optional)
 

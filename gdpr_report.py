@@ -1,14 +1,14 @@
 """eLabFTW GDPR Art. 15 report generator - HTML explorer + PDF + ZIP.
 
-Turns a raw export (``out/``, produced by :mod:`elabftw_gdpr.export`) into a
-human-readable disclosure package:
+Turns one per-user raw export folder under ``output/`` into a
+human-readable disclosure package in the same folder:
 
-  report/                       HTML explorer (index + one page per entry)
-  report/Disclosure_UserX.pdf   Art. 15 disclosure letter
-  dist/gdpr_disclosure_UserX.zip  everything combined (HTML + PDF + raw data)
+  output/UserX/index.html                    HTML explorer
+  output/UserX/Disclosure_UserX.pdf          Art. 15 disclosure letter
+  output/UserX/gdpr_disclosure_UserX.zip     complete package
 
 Usage:
-  gdpr-report [--out-dir DIR] [--report-dir DIR]
+  gdpr_report.py [--out-dir DIR] [--user 75]
 """
 
 from __future__ import annotations
@@ -410,7 +410,7 @@ categories (see PDF).</div>
 
 <h2>Entries ({sum(counts.values())})</h2>{''.join(entry_links)}
 
-<h2>DB/CLI only (sql/gdpr_cli.sql)</h2>
+<h2>DB/CLI only (gdpr_cli.sql)</h2>
 <ul>
 <li>audit_logs, authfail, changelog (structured), api_keys, exports, todolist, unfinished_steps, favtags, pins, sig_keys, edit_mode, lockout_devices</li>
 </ul>
@@ -530,7 +530,7 @@ def build_report_for_user(user_dir: Path) -> int:
     uid = user.get("userid") or manifest.get("target_userid", "x")
 
     # clean only generated artifacts, keep the raw JSON export
-    for name in ("index.html", "entries", "assets", "files"):
+    for name in ("index.html", "entries", "assets"):
         path = user_dir / name
         if path.is_dir():
             shutil.rmtree(path)

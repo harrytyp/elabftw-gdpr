@@ -31,12 +31,18 @@ gitignored). All runs are logged to output/gdpr.log (Art. 5(2) GDPR).
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+try:
+    from colorama import just_fix_windows_console
+except ImportError:
+    just_fix_windows_console = None
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 ENV_FILE = PROJECT_ROOT / "elabftw.env"
@@ -166,6 +172,16 @@ def ensure_credentials(env: dict, env_file: Path) -> dict:
 # Subcommands
 # ---------------------------------------------------------------------------
 
+def print_api_limitations() -> None:
+    """Tell the operator how to complete the API export with DB/CLI data."""
+    print("\nNext steps: the API export is not the complete disclosure by itself.")
+    print("Some data requires a separate DB/CLI step, including audit logs, failed")
+    print("login attempts and self-scoped metadata such as exports and todolists.")
+    print(f"  SQL checklist: {PROJECT_ROOT / 'gdpr_cli.sql'}")
+    print(f"  API/CLI guide: {PROJECT_ROOT / 'docs' / 'api-vs-cli.md'}")
+    print("Review and redact third-party data before sending the disclosure.")
+
+
 def cmd_export(args) -> int:
     from gdpr_export import (ENV_FILE as EXPORT_ENV, export_users,
                              load_env, parse_user_ids)
@@ -180,13 +196,20 @@ def cmd_export(args) -> int:
         print(color("No user IDs - use --users 75,82 or set ELAB_USERID.", "yellow"))
         return 2
 
-    results = export_users(env, users, Path(args.out_dir), args.dry_run, args.no_files)
+    if args.json:
+        with contextlib.redirect_stdout(sys.stderr):
+            results = export_users(env, users, Path(args.out_dir), args.dry_run, args.no_files)
+    else:
+        results = export_users(env, users, Path(args.out_dir), args.dry_run, args.no_files)
     ok = sum(1 for v in results.values() if v is not None)
     if args.json:
+        # Keep stdout valid JSON for pipes and automation. Human progress goes
+        # to stderr when JSON mode is selected.
         print(json.dumps({"users": results, "ok": ok, "total": len(results)},
                          indent=2, ensure_ascii=False, default=str))
     else:
         print(f"\n{color('Exported', 'green')} {ok}/{len(users)} users")
+        print_api_limitations()
     return 0 if ok == len(users) else 1
 
 
@@ -219,7 +242,8 @@ def cmd_all(args) -> int:
 
     logger.info("Run: users=%s dry_run=%s no_files=%s", users, args.dry_run, args.no_files)
     print(f"[gdpr] Exporting data for {len(users)} user(s)...")
-    results = export_users(env, users, OUTPUT_DIR, args.dry_run, args.no_files)
+    base_dir = Path(args.out_dir)
+    results = export_users(env, users, base_dir, args.dry_run, args.no_files)
     ok = sum(1 for v in results.values() if v is not None)
     if ok != len(users):
         logger.error("Export incomplete: %s/%s users", ok, len(users))
@@ -230,12 +254,13 @@ def cmd_all(args) -> int:
         return 0
 
     print(f"\n[gdpr] Building report package...")
-    report_results = build_reports(OUTPUT_DIR, users if args.users else None)
+    report_results = build_reports(base_dir, users if args.users else None)
     if not report_results:
         return 1
 
     logger.info("Run finished: %s users exported, %s reports built",
                 len(users), sum(1 for v in report_results.values() if v == 0))
+    print_api_limitations()
     print(color("\n[gdpr] Done.", "green"))
     print(f"  Results:   {OUTPUT_DIR / 'User*'}")
     print(f"  HTML:      {OUTPUT_DIR / 'User*' / 'index.html'} (open in browser)")
@@ -389,6 +414,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    # Enable ANSI support in Windows 10+ CMD/PowerShell through colorama.
+    # Pipes and NO_COLOR are still handled by color().
+    if just_fix_windows_console is not None:
+        just_fix_windows_console()
     python = setup_environment()
 
     # Re-execute inside the venv so all dependencies are importable.
