@@ -39,12 +39,16 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-VENV_DIR = PROJECT_ROOT / ".venv"
 ENV_FILE = PROJECT_ROOT / "elabftw.env"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 LOG_FILE = OUTPUT_DIR / "gdpr.log"
 
-# venv layout differs between platforms
+# venv layout differs between platforms. On Windows, a venv on a UNC path
+# (\\server\share) is unreliable and slow - keep it local instead.
+if os.name == "nt" and str(PROJECT_ROOT).startswith("\\\\"):
+    VENV_DIR = Path(os.environ.get("LOCALAPPDATA", PROJECT_ROOT)) / "elabftw_gdpr" / ".venv"
+else:
+    VENV_DIR = PROJECT_ROOT / ".venv"
 VENV_PYTHON = VENV_DIR / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 logger = logging.getLogger("gdpr")
