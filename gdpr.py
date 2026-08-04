@@ -49,9 +49,12 @@ ENV_FILE = PROJECT_ROOT / "elabftw.env"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 LOG_FILE = OUTPUT_DIR / "gdpr.log"
 
-# venv layout differs between platforms. On Windows, a venv on a UNC path
-# (\\server\share) is unreliable and slow - keep it local instead.
-if os.name == "nt" and str(PROJECT_ROOT).startswith("\\\\"):
+# venv layout differs between platforms. On Windows the venv is always kept
+# under %LOCALAPPDATA%: a venv on a UNC share (\\server\share) is unreliable
+# and slow, and after `pushd` in gdpr.bat a UNC path becomes a mapped drive
+# letter, so path-based detection cannot be trusted. A local venv is
+# deterministic and fast. On Linux/macOS the venv lives next to the project.
+if os.name == "nt":
     VENV_DIR = Path(os.environ.get("LOCALAPPDATA", PROJECT_ROOT)) / "elabftw_gdpr" / ".venv"
 else:
     VENV_DIR = PROJECT_ROOT / ".venv"
@@ -84,16 +87,31 @@ def setup_logging() -> None:
     root.addHandler(stream_handler)
 
 
+def _venv_has_deps(python: Path) -> bool:
+    """True if all runtime dependencies import in the given venv."""
+    probe = ("import elabapy, PIL, reportlab, colorama; "
+             "import sys; sys.exit(0)")
+    try:
+        return subprocess.run([str(python), "-c", probe],
+                              capture_output=True, timeout=60).returncode == 0
+    except OSError:
+        return False
+
+
 def setup_environment() -> str:
-    """Create the venv and install dependencies on first run.
+    """Create the venv and install dependencies when missing.
 
     Returns the path to the venv Python interpreter.
     """
-    if VENV_PYTHON.exists():
+    if VENV_PYTHON.exists() and _venv_has_deps(VENV_PYTHON):
         return str(VENV_PYTHON)
 
-    print("[gdpr] First run - setting up Python environment...")
-    subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
+    if not VENV_PYTHON.exists():
+        print("[gdpr] First run - setting up Python environment...")
+        VENV_DIR.mkdir(parents=True, exist_ok=True)
+        subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
+
+    print("[gdpr] Installing dependencies...")
     subprocess.run([str(VENV_PYTHON), "-m", "pip", "install", "--quiet",
                     "-r", str(PROJECT_ROOT / "requirements.txt")], check=True)
     return str(VENV_PYTHON)
