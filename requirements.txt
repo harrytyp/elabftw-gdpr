@@ -1,0 +1,5 @@
+# eLabFTW DSGVO-Export — Python-Abhängigkeiten
+# Installieren mit:  python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+elabapy>=1.1.0     # offizieller eLabFTW-API-Wrapper (zieht requests als Abhängigkeit)
+pillow>=10.0       # Thumbnails für den HTML-Explorer
+reportlab>=4.0     # PDF-Auskunftsschreiben

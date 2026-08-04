@@ -1,0 +1,10 @@
+# Daten & Secrets — nie teilen/committen
+elabftw.env
+out/
+report/
+*.zip
+
+# Python
+.venv/
+__pycache__/
+*.pyc
