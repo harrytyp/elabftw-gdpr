@@ -1,3 +1,0 @@
-[console_scripts]
-gdpr-export = elabftw_gdpr.export:main
-gdpr-report = elabftw_gdpr.report:main
