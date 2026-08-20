@@ -61,6 +61,9 @@ with `--db-container <name>`, `--db-env-file <path>`, `--db-name <name>`.
 On the eLabFTW server itself no env file is needed at all: the credentials
 are read from the stack's `.env`.
 
+> **How-to für eine konkrete GDPR-Anfrage:** [docs/gdpr-request-howto.md](docs/gdpr-request-howto.md)
+> — Schritt für Schritt für beide Pipelines, inkl. Redaktions-Pflicht.
+
 ## Commands
 
 | Command | Purpose |
