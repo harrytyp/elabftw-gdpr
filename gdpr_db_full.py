@@ -121,6 +121,21 @@ def sanitize_filename(name: str) -> str:
     return "".join(c for c in name if c.isalnum() or c in "._- ")[:120] or "upload"
 
 
+def redact_names(text: str, names: list[str]) -> str:
+    """Replace other users' names/emails in a comment with '[redacted]'.
+
+    Never redacts the data subject's own name - only third parties.
+    """
+    if not text:
+        return text
+    for nm in names:
+        nm = (nm or "").strip()
+        if len(nm) < 3:  # too short to be safe
+            continue
+        text = text.replace(nm, "[redacted]")
+    return text
+
+
 def save_json(out_dir: Path, name: str, data) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / name).write_text(
@@ -381,6 +396,42 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
     except RuntimeError:
         pass
     try:
+        # Comments/revisions BY the user on entries that are NOT theirs.
+        # These are the user's own statements -> must be in the disclosure,
+        # but only the comment itself (not the foreign entry's content).
+        appendix["comments_on_other_entries"] = q(
+            f"SELECT 'experiments_comments' AS t, item_id, userid, created_at, comment "
+            f"FROM experiments_comments WHERE userid={target} "
+            f"AND item_id NOT IN (SELECT id FROM experiments WHERE userid={target}) "
+            f"UNION ALL "
+            f"SELECT 'items_comments', item_id, userid, created_at, comment "
+            f"FROM items_comments WHERE userid={target} "
+            f"AND item_id NOT IN (SELECT id FROM items WHERE userid={target})")
+    except RuntimeError:
+        pass
+    try:
+        # Text search: comments by OTHERS mentioning the user's name/email.
+        # Only the matching comment is returned (never the whole entry),
+        # and other users' names are redacted by the report.
+        u_email = (user.get("email") or "").lower()
+        u_name = (f"{user.get('firstname') or ''} {user.get('lastname') or ''}").strip()
+        search_terms = [t for t in (u_email, u_name) if len(t) >= 3]
+        if search_terms:
+            like_clauses = " OR ".join(
+                f"comment LIKE '%{t}%'" for t in search_terms)
+            appendix["name_mentions"] = q(
+                f"SELECT 'experiments_comments' AS t, item_id, userid, created_at, comment "
+                f"FROM experiments_comments "
+                f"WHERE item_id NOT IN (SELECT id FROM experiments WHERE userid={target}) "
+                f"AND ({like_clauses}) "
+                f"UNION ALL "
+                f"SELECT 'items_comments', item_id, userid, created_at, comment "
+                f"FROM items_comments "
+                f"WHERE item_id NOT IN (SELECT id FROM items WHERE userid={target}) "
+                f"AND ({like_clauses})")
+    except RuntimeError:
+        pass
+    try:
         appendix["bookings"] = q(
             f"SELECT id, title, start, end, team, experiment, item, created_at "
             f"FROM team_events WHERE userid={target}")
@@ -404,6 +455,8 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
     counts["notifications"] = len(appendix.get("notifications", []))
     counts["links"] = len(appendix.get("links", []))
     counts["third_party_mentions"] = len(appendix.get("third_party_mentions", []))
+    counts["comments_on_other_entries"] = len(appendix.get("comments_on_other_entries", []))
+    counts["name_mentions"] = len(appendix.get("name_mentions", []))
     counts["bookings"] = len(appendix.get("bookings", []))
 
     if dry_run:
@@ -418,7 +471,8 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
                   "todolist", "sig_keys", "favtags", "pins", "team_groups",
                   "storage_history", "compounds", "request_actions",
                   "procurement", "notifications", "links",
-                  "third_party_mentions", "bookings"):
+                  "third_party_mentions", "comments_on_other_entries",
+                  "name_mentions", "bookings"):
             print(f"{k:22s} {counts[k]}")
         return True, counts
 

@@ -33,6 +33,21 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tif", ".tiff"}
 THUMBNAIL_MAX = 400
 
+
+def redact_names(text: str, names: list[str]) -> str:
+    """Replace other users' names/emails with '[redacted]' (third parties only).
+
+    Local fallback - gdpr_db_full.py has the same helper; both stay in sync.
+    """
+    if not text:
+        return text
+    for nm in names:
+        nm = (nm or "").strip()
+        if len(nm) < 3:
+            continue
+        text = text.replace(nm, "[redacted]")
+    return text
+
 CSS = """
 body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #f5f6f8; color: #1a1d21; }
 .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; }
@@ -389,6 +404,22 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
                 "<tr>" + "".join(f"<td>{escape(c)}</td>" for c in row[:cols]) + "</tr>"
                 for row in db_appendix.get(name, [])
             )
+        # redacted variant: masks other users' IDs and flags comment columns
+        def _redact_rows(name, cols, comment_idx):
+            out = []
+            me_uid = user.get("userid")
+            for row in db_appendix.get(name, []):
+                cells = list(row[:cols])
+                # column 2 is the author userid -> mask it (third party)
+                if len(cells) > 2:
+                    try:
+                        uid = int(cells[2])
+                        if uid != me_uid:
+                            cells[2] = f"[user {uid}]"
+                    except (ValueError, TypeError):
+                        cells[2] = "[unknown user]"
+                out.append("<tr>" + "".join(f"<td>{escape(c)}</td>" for c in cells) + "</tr>")
+            return "".join(out)
         appendix_sections = f"""
 <h2>DB appendix (audit trail, logins, changelog, keys)</h2>
 <p><b>Source:</b> direct database export (no API key). Includes all uploads
@@ -427,7 +458,15 @@ that are not reachable via the API.</p>
 <h3>Third-party comments on your entries ({len(db_appendix.get('third_party_mentions', []))})</h3>
 <p class="notice notice-error"><b>Redact before sending (Art. 15(4)):</b> these are comments
 by OTHER users on your entries - they may contain third-party personal data.</p>
-<table><tr><th>Type</th><th>Entity</th><th>User</th><th>Date</th><th>Comment</th></tr>{_rows('third_party_mentions', 5)}</table>
+<table><tr><th>Type</th><th>Entity</th><th>User</th><th>Date</th><th>Comment</th></tr>{_redact_rows('third_party_mentions', 5, 4)}</table>
+<h3>Your comments on other entries ({len(db_appendix.get('comments_on_other_entries', []))})</h3>
+<p>Your own statements on entries that belong to other users - only the comment
+itself is included, not the foreign entry's content.</p>
+<table><tr><th>Type</th><th>Entry</th><th>User</th><th>Date</th><th>Comment</th></tr>{_redact_rows('comments_on_other_entries', 5, 4)}</table>
+<h3>Name mentions in other users' comments ({len(db_appendix.get('name_mentions', []))})</h3>
+<p class="notice notice-error"><b>Redact before sending (Art. 15(4)):</b> comments by others
+that mention your name/email. Only the matching comment is shown, with other users' names redacted.</p>
+<table><tr><th>Type</th><th>Entry</th><th>User</th><th>Date</th><th>Comment</th></tr>{_redact_rows('name_mentions', 5, 4)}</table>
 """
 
     # API-mode limitation banner (pipeline A stays transparent)
