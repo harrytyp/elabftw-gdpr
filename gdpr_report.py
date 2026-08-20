@@ -386,7 +386,7 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
     if db_appendix:
         def _rows(name, cols):
             return "".join(
-                "<tr>" + "".join(f"<td>{escape(c)}</td>" for c in row[:len(cols)]) + "</tr>"
+                "<tr>" + "".join(f"<td>{escape(c)}</td>" for c in row[:cols]) + "</tr>"
                 for row in db_appendix.get(name, [])
             )
         appendix_sections = f"""
