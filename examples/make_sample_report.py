@@ -97,12 +97,26 @@ def main() -> int:
     ])
 
     # --- uploads (metadata only) ---
-    w(user_dir / "uploads.json", [
+    uploads_all = [
         {"id": 1, "real_name": "sample-data.csv", "long_name": "1-sample-data.csv",
-         "comment": "", "item_id": 1, "type": "csv", "created_at": "2025-03-07 14:00:00",
-         "hash": "abc123", "hash_algorithm": "sha256", "filesize": 2048,
-         "state": "1", "storage": "local"},
-    ])
+         "comment": "", "item_id": "1", "type": "experiments",
+         "created_at": "2025-03-07 14:00:00", "hash": "abc123",
+         "hash_algorithm": "sha256", "filesize": 2048, "state": "1",
+         "storage": "local"},
+        {"id": 2, "real_name": "sample-log.xlsx", "long_name": "2-sample-log.xlsx",
+         "comment": "", "item_id": "3", "type": "items",
+         "created_at": "2025-04-01 09:00:00", "hash": "def456",
+         "hash_algorithm": "sha256", "filesize": 4096, "state": "1",
+         "storage": "local"},
+    ]
+    w(user_dir / "uploads.json", uploads_all)
+    # per-entity uploads (matching the DB pipeline layout so the entity
+    # pages show them)
+    for up in uploads_all:
+        edir = user_dir / up["type"] / str(up["item_id"])
+        w(edir / "uploads.json",
+          [u for u in uploads_all
+           if u["type"] == up["type"] and u["item_id"] == up["item_id"]])
 
     # --- teams ---
     w(user_dir / "teams.json", user["teams"])

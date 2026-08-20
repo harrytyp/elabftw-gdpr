@@ -529,6 +529,12 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
             save_json(entry_dir, "entity.json", ent)
             save_json(entry_dir, "comments.json", entry.get("comments", []))
             save_json(entry_dir, "revisions.json", entry.get("revisions", []))
+            # per-entity uploads so the entity pages show them (matching the
+            # API pipeline layout); the central uploads.json stays as overview.
+            # Uploads carry type='experiments'|'items' and item_id (string).
+            ent_uploads = [u for u in uploads_all
+                           if u.get("type") == et and str(u.get("item_id")) == str(eid)]
+            save_json(entry_dir, "uploads.json", ent_uploads)
     save_json(out_dir, "uploads.json", uploads_all)
     save_json(out_dir, "db_appendix.json", appendix)
 
