@@ -414,7 +414,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  gdpr.py config set userid 75,82\n"
             "  ELAB_USERID=75,82 gdpr.py    override user IDs per run\n"
             "\nFirst run creates .venv and asks for credentials once. "
-            "All runs are logged to output/gdpr.log. Docs: docs/ in this repo."
+            "All runs are logged to output/gdpr.log. See README.md for usage."
         ),
     )
     parser.add_argument("--no-color", action="store_true",
