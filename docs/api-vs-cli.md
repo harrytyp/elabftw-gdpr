@@ -48,13 +48,12 @@ not on the URL target - verified in code:
 ## CLI part: the SQL statements (`gdpr_cli.sql`)
 
 The full statements - they target the tables that are unreachable via the API.
-**Status: written against the schema (`structure.sql`), not yet tested against
-a live database** (no DB access to the instance).
+**Status: tested 2026-08-20 against live elabftw/elabimg:stable + mysql:8.4 (user 2, 290 uploads, 1557 changelog rows) — all 16 tables/columns verified.**
 
 Run with (adjust the user ID first, `SET @uid = X`):
 
 ```bash
-docker exec -it elabftw elabctl mysql -e "SET @uid = 42; SOURCE gdpr_cli.sql;"
+docker exec -i elab-mysql mysql -uelabftw -p"$ELABFTW_DB_PASSWORD" elabftw < gdpr_cli.sql  # with: SET @uid = 42; on first line, or pass UID via shell
 ```
 
 ```sql

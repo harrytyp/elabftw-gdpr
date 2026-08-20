@@ -2,7 +2,7 @@
 -- eLabFTW - GDPR Art. 15 disclosure: DB/CLI part (complements the API export)
 -- ============================================================================
 -- Run with the data subject's user ID:
---   docker exec -it elabftw elabctl mysql -e "SET @uid = 42; SOURCE gdpr_cli.sql;"
+--   docker exec -i elab-mysql mysql -uelabftw -p"$ELABFTW_DB_PASSWORD" elabftw -e "SET @uid = 42; SOURCE gdpr_cli.sql;"  # or: PW=$(grep ELABFTW_DB_PASSWORD ~/unified-researchdata-mcp/.env | cut -d= -f2) docker exec -i elab-mysql mysql -uelabftw -p"$PW" elabftw < gdpr_cli.sql
 --   or in phpMyAdmin / a MySQL client (adjust @uid first).
 --
 -- Covers ONLY the data that is NOT reachable via the API (self-scoped or no
