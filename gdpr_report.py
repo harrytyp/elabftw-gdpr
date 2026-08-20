@@ -455,6 +455,12 @@ that are not reachable via the API.</p>
 <table><tr><th>ID</th><th>Date</th><th>Category</th><th>Read</th><th>Body</th></tr>{_rows('notifications', 5)}</table>
 <h3>Entity links ({len(db_appendix.get('links', []))})</h3>
 <table><tr><th>Type</th><th>Item</th><th>Link</th></tr>{_rows('links', 3)}</table>
+<h3>Storage assignments ({len(db_appendix.get('storage_assignments', []))})</h3>
+<table><tr><th>Type</th><th>Item</th><th>Storage</th><th>Qty</th><th>Unit</th><th>Date</th></tr>{_rows('storage_assignments', 6)}</table>
+<h3>Compound links ({len(db_appendix.get('compound_links', []))})</h3>
+<table><tr><th>Type</th><th>Entity</th><th>Compound</th><th>Date</th></tr>{_rows('compound_links', 4)}</table>
+<h3>Template/type steps ({len(db_appendix.get('template_steps', []))})</h3>
+<table><tr><th>Type</th><th>Template</th><th>Step</th><th>Finished</th></tr>{_rows('template_steps', 4)}</table>
 <h3>Third-party comments on your entries ({len(db_appendix.get('third_party_mentions', []))})</h3>
 <p class="notice notice-error"><b>Redact before sending (Art. 15(4)):</b> these are comments
 by OTHER users on your entries - they may contain third-party personal data.</p>

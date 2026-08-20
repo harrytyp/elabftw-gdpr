@@ -179,6 +179,27 @@ SELECT 'items_comments', item_id, userid, created_at, comment
   FROM items_comments
  WHERE item_id IN (SELECT id FROM items WHERE userid = @uid) AND userid <> @uid;
 
+-- 18) storage assignments (where the user's items are stored)
+SELECT 'experiments' AS t, item_id, storage_id, qty_stored, qty_unit, created_at
+  FROM containers2experiments WHERE item_id IN (SELECT id FROM experiments WHERE userid = @uid)
+UNION ALL
+SELECT 'items', item_id, storage_id, qty_stored, qty_unit, created_at
+  FROM containers2items WHERE item_id IN (SELECT id FROM items WHERE userid = @uid);
+
+-- 19) compound links (which compounds appear in the user's entries)
+SELECT 'experiments' AS t, entity_id, compound_id, created_at
+  FROM compounds2experiments WHERE entity_id IN (SELECT id FROM experiments WHERE userid = @uid)
+UNION ALL
+SELECT 'items', entity_id, compound_id, created_at
+  FROM compounds2items WHERE entity_id IN (SELECT id FROM items WHERE userid = @uid);
+
+-- 20) steps on templates/item types owned by the user
+SELECT 'experiments_templates' AS t, item_id, body, finished, finished_time
+  FROM experiments_templates_steps WHERE item_id IN (SELECT id FROM experiments_templates WHERE userid = @uid)
+UNION ALL
+SELECT 'items_types', item_id, body, finished, finished_time
+  FROM items_types_steps WHERE item_id IN (SELECT id FROM items_types WHERE userid = @uid);
+
 -- ---------------------------------------------------------------------------
 -- E) Events / bookings (team_events.userid = owner)
 -- ---------------------------------------------------------------------------

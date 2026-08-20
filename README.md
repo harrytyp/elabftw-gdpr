@@ -103,7 +103,7 @@ Per user in `output/User<id>/`:
 - all entities owned by the user (experiments, items, templates, item types — incl. archived and soft-deleted) with comments, revisions, steps, tags, request actions
 - uploads: metadata (always), file contents with `--with-files`
 - HTML explorer with thumbnails, PDF disclosure letter, ZIP archive
-- **DB pipeline only:** audit_logs, authfail, changelog, api_keys, exports, todolist, sig_keys, favtags, pins, team groups, storage history, compounds, request actions, procurement, notifications, entity links, archived uploads (state=2), and **third-party comments on the user's entries** (data about the person from other people's content — redact before sending!) — everything the API cannot see
+- **DB pipeline only:** audit_logs, authfail, changelog, api_keys, exports, todolist, sig_keys, favtags, pins, team groups, storage history + assignments, compounds + links, template/type steps, signatures (who signed/timestamped), request actions, procurement, notifications, entity links, archived uploads (state=2), and **third-party comments on the user's entries** (data about the person from other people's content — redact before sending!) — everything the API cannot see
 
 The run log is `output/gdpr.log` (accountability, Art. 5(2)).
 

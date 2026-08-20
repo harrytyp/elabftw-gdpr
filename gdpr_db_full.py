@@ -222,17 +222,28 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
     entities = {et: [] for et in entity_types}
     for et in entity_types:
         try:
-            rows = q(f"SELECT id, title, category, status, state, created_at, "
-                     f"modified_at, team FROM {et} WHERE userid={target}")
-            entities[et] = [{"id": int(r[0]), "title": r[1], "category": r[2],
-                             "status": r[3], "state": r[4], "created_at": r[5],
-                             "modified_at": r[6], "team": r[7]} for r in rows]
+            if et in ("experiments", "items"):
+                rows = q(f"SELECT id, title, category, status, state, created_at, "
+                         f"modified_at, team, last_signed_by, timestampedby, "
+                         f"signature_count, timestamped FROM {et} WHERE userid={target}")
+                entities[et] = [{"id": int(r[0]), "title": r[1], "category": r[2],
+                                 "status": r[3], "state": r[4], "created_at": r[5],
+                                 "modified_at": r[6], "team": r[7],
+                                 "last_signed_by": r[8], "timestampedby": r[9],
+                                 "signature_count": r[10], "timestamped": r[11]}
+                                for r in rows]
+            else:
+                rows = q(f"SELECT id, title, category, status, state, created_at, "
+                         f"modified_at, team FROM {et} WHERE userid={target}")
+                entities[et] = [{"id": int(r[0]), "title": r[1], "category": r[2],
+                                 "status": r[3], "state": r[4], "created_at": r[5],
+                                 "modified_at": r[6], "team": r[7]} for r in rows]
         except RuntimeError as e:
             logger.warning("entity %s: %s", et, e)
 
-    # comments / revisions
+    # comments / revisions (also on templates + item types)
     details = {}
-    for et in ("experiments", "items"):
+    for et in ("experiments", "items", "experiments_templates", "items_types"):
         try:
             for row in q(f"SELECT id, item_id, userid, created_at, comment "
                          f"FROM {et}_comments WHERE userid={target}"):
@@ -387,6 +398,33 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
     except RuntimeError:
         pass
     try:
+        appendix["storage_assignments"] = q(
+            f"SELECT 'experiments' AS t, item_id, storage_id, qty_stored, qty_unit, created_at "
+            f"FROM containers2experiments WHERE item_id IN (SELECT id FROM experiments WHERE userid={target}) "
+            f"UNION ALL "
+            f"SELECT 'items', item_id, storage_id, qty_stored, qty_unit, created_at "
+            f"FROM containers2items WHERE item_id IN (SELECT id FROM items WHERE userid={target})")
+    except RuntimeError:
+        pass
+    try:
+        appendix["compound_links"] = q(
+            f"SELECT 'experiments' AS t, entity_id, compound_id, created_at "
+            f"FROM compounds2experiments WHERE entity_id IN (SELECT id FROM experiments WHERE userid={target}) "
+            f"UNION ALL "
+            f"SELECT 'items', entity_id, compound_id, created_at "
+            f"FROM compounds2items WHERE entity_id IN (SELECT id FROM items WHERE userid={target})")
+    except RuntimeError:
+        pass
+    try:
+        appendix["template_steps"] = q(
+            f"SELECT 'experiments_templates' AS t, item_id, body, finished, finished_time "
+            f"FROM experiments_templates_steps WHERE item_id IN (SELECT id FROM experiments_templates WHERE userid={target}) "
+            f"UNION ALL "
+            f"SELECT 'items_types', item_id, body, finished, finished_time "
+            f"FROM items_types_steps WHERE item_id IN (SELECT id FROM items_types WHERE userid={target})")
+    except RuntimeError:
+        pass
+    try:
         appendix["third_party_mentions"] = q(
             f"SELECT 'experiments_comments' AS t, item_id, userid, created_at, comment "
             f"FROM experiments_comments WHERE item_id IN (SELECT id FROM experiments WHERE userid={target}) AND userid<>{target} "
@@ -454,6 +492,9 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
     counts["procurement"] = len(appendix.get("procurement", []))
     counts["notifications"] = len(appendix.get("notifications", []))
     counts["links"] = len(appendix.get("links", []))
+    counts["storage_assignments"] = len(appendix.get("storage_assignments", []))
+    counts["compound_links"] = len(appendix.get("compound_links", []))
+    counts["template_steps"] = len(appendix.get("template_steps", []))
     counts["third_party_mentions"] = len(appendix.get("third_party_mentions", []))
     counts["comments_on_other_entries"] = len(appendix.get("comments_on_other_entries", []))
     counts["name_mentions"] = len(appendix.get("name_mentions", []))
@@ -469,7 +510,8 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
               f"(active {counts['uploads_active']}, archived {counts['uploads_archived']})")
         for k in ("audit_logs", "authfail", "changelog", "api_keys", "exports",
                   "todolist", "sig_keys", "favtags", "pins", "team_groups",
-                  "storage_history", "compounds", "request_actions",
+                  "storage_history", "storage_assignments", "compounds",
+                  "compound_links", "template_steps", "request_actions",
                   "procurement", "notifications", "links",
                   "third_party_mentions", "comments_on_other_entries",
                   "name_mentions", "bookings"):
