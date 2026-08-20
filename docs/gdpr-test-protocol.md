@@ -29,6 +29,29 @@ docker exec -i elab-mysql mysql -uelabftw -p"$PW" elabftw < gdpr_cli.sql
 
 **Result: all 16 tables referenced in `gdpr_cli.sql` exist and all SELECTs executed without error on mysql:8.4.** The only functional gap is the `uploads` archival layer (see below).
 
+## Nachtrag 2026-08-20 (abends): Pipeline B `elab-gdpr-db` — DB-Voll-Export
+
+Der o.g. Punkt "gdpr_cli.sql ist nicht merged" und "171 archivierte Uploads fehlen"
+sind gelöst: **`gdpr_db_full.py` (Entry Point `elab-gdpr-db`) exportiert ALLES
+direkt aus MySQL** — ohne API-Key:
+
+- Rekursiver Autodetect (Container → compose/.env → DB-Name → URL), bei
+  Mehrdeutigkeit fragt er (questionary/input), Override via
+  `--db-container/--db-name/--db-env-file`.
+- Liefert **alle 290 Uploads** (119 aktiv + 171 archiviert) inkl. Binaries aus
+  dem Docker-Volume (`--with-files`), plus `db_appendix.json` (audit_logs,
+  authfail, changelog, api_keys, exports, todolist, sig_keys, favtags, bookings).
+- `gdpr_report.py` rendert `db_appendix.json` als eigene HTML-Sektion und setzt
+  den roten LIMITATIONS-Banner **nur im API-Modus**; PDF-Sektion 4 unterscheidet
+  DB vs. API. API-ZIP bekommt zusätzlich `LIMITATIONS.md`.
+
+**Getestet gegen die Live-DB (researchmcp):** `users` listet 2 User;
+`--users 2 --dry-run` → experiments 18, items 75, uploads 290 (119+171),
+audit_logs 10, authfail 2, changelog 1557, api_keys 1, bookings 1;
+`--users 2 --with-files` → 290/290 Dateien (50s). Report-Rendering gegen den
+DB-Export und die pip/uv-Builds stehen noch aus (dokumentiert als offene
+Punkte; Stand siehe git log `adc1af9`).
+
 ## API vs DB — remaining gaps
 
 | Data | API (sysadmin key) | DB | In report? | What to do |

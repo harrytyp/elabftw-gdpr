@@ -605,6 +605,32 @@ def build_report_for_user(user_dir: Path) -> int:
     build_html_report(user_dir, user_dir)
     pdf_path = user_dir / f"Disclosure_User{uid}.pdf"
     build_pdf_report(user_dir, pdf_path)
+
+    # Pipeline A (API) is transparent: write LIMITATIONS.md so the recipient
+    # sees exactly which DB-only data is missing from this package.
+    if manifest.get("source") != "db":
+        db_counts = "unknown (DB export not run)"
+        try:
+            import json as _json
+            appx = _json.loads((user_dir / "db_appendix.json").read_text(
+                encoding="utf-8")) if (user_dir / "db_appendix.json").exists() else None
+            if appx:
+                db_counts = ", ".join(f"{k} {len(v)}" for k, v in appx.items())
+        except Exception:
+            pass
+        archived = manifest.get("uploads_archived", "n/a")
+        (user_dir / "LIMITATIONS.md").write_text(
+            f"# Limitations of this API export\n\n"
+            f"This package was created with the 1-click API pipeline "
+            f"(elab-gdpr, sysadmin API key). The following data is NOT included "
+            f"and must be added for a complete Art. 15 disclosure:\n\n"
+            f"- audit_logs, authfail, changelog, api_keys, exports, todolist,\n"
+            f"  sig_keys, favtags (DB-only, {db_counts})\n"
+            f"- archived uploads (state=2, {archived} files - metadata only here)\n\n"
+            f"Run the DB pipeline instead for everything in one go:\n\n"
+            f"    elab-gdpr-db --users {uid} --with-files\n\n"
+            f"Generated: {manifest.get('exported_at', '')}\n", encoding="utf-8")
+
     zip_path = user_dir / f"gdpr_disclosure_User{uid}.zip"
     build_zip(user_dir, zip_path)
 

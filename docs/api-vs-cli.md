@@ -5,6 +5,11 @@ getSubModel mapping, Models: ApiKeys/Exports/SigKeys/UserUploads/
 UserRequestActions/Scheduler/TeamGroups) and the OpenAPI spec
 (doc.elabftw.net/api/v2/).
 
+> **TL;DR:** Pipeline A (`elab-gdpr`, API key) covers the table below. For the
+> 🔶 and ❌ rows use Pipeline B (`elab-gdpr-db`, no API key) - it reads all of
+> them directly from MySQL, including archived uploads (state=2) and the audit
+> trail. Since v1.0 both pipelines share the same CLI shape.
+
 ## ✅ Solvable via the admin API (sysadmin key is enough)
 
 | Data | Endpoint |

@@ -1,14 +1,32 @@
 # eLabFTW GDPR disclosure tooling
 
 Tooling to answer GDPR data subject access requests (Art. 15) for an
-[eLabFTW](https://www.elabftw.net/) instance - using only a sysadmin API
-key, plus one small SQL file for the data the API does not expose.
+[eLabFTW](https://www.elabftw.net/) instance - two 1-click pipelines:
 
-Verified against a live eLabFTW instance (5.x) with a sysadmin key.
+- **Pipeline A (API)** - `elab-gdpr`: sysadmin API key, fast, with a clearly
+  marked limitation banner for the data only the database knows.
+- **Pipeline B (DB)** - `elab-gdpr-db`: no API key needed, reads everything
+  directly from MySQL (including archived uploads and the audit trail) and
+  copies the upload files from the docker volume.
+
+Verified against a live eLabFTW instance (5.6.x, mysql:8.4).
 
 ## Quickstart
 
-One command - works on Linux, macOS and Windows:
+One command - no git clone needed, install via pip/uv:
+
+```bash
+# Run without installing (uv):
+uvx elabftw-gdpr --users 2          # API pipeline
+uvx elabftw-gdpr-db --users 2       # DB pipeline (no API key)
+
+# Or install once:
+pip install elabftw-gdpr
+elab-gdpr --users 2                 # API
+elab-gdpr-db --users 2 --with-files # DB, with all upload files
+```
+
+Classic repo mode still works on Linux, macOS and Windows:
 
 ```bash
 # Linux/macOS:
@@ -30,21 +48,39 @@ output/User75/gdpr_disclosure_User75.zip
 output/gdpr.log                     <- run log (Art. 5(2) GDPR accountability)
 ```
 
+### Two pipelines at a glance
+
+| Pipeline | Command (1 click) | Auth | What you get |
+|---|---|---|---|
+| A - API | `elab-gdpr --users 2` | sysadmin API key | export + report, metadata + active uploads; red LIMITATIONS banner + `LIMITATIONS.md` for DB-only data |
+| B - DB | `elab-gdpr-db --users 2` | **none** (server/DB access) | EVERYTHING: all uploads incl. archived (state=2), audit trail, authfail, changelog, api_keys, exports, todolist, sig_keys, favtags, bookings |
+
+Pipeline B auto-detects the MySQL container, the compose/`.env` file and the
+database name. If several candidates exist it asks you (recursive) - override
+with `--db-container <name>`, `--db-env-file <path>`, `--db-name <name>`.
+On the eLabFTW server itself no env file is needed at all: the credentials
+are read from the stack's `.env`.
+
 ## Commands
 
 | Command | Purpose |
 |---|---|
-| `gdpr.py` (default: `all`) | export + report for the configured users |
+| `gdpr.py` (default: `all`) | export + report for the configured users (API) |
 | `gdpr.py export` | API export only |
 | `gdpr.py report` | build report package from existing exports |
 | `gdpr.py users` | list users visible to the sysadmin key |
 | `gdpr.py status` | show what is in `output/` (exports + PDF/ZIP per user) |
 | `gdpr.py config show` | show config (never the key) |
 | `gdpr.py config set userid 75,82` | update user IDs in the env file |
+| `gdpr_db_full.py` / `elab-gdpr-db` | DB full export (no API key; same flags) |
+| `gdpr_db_full.py users` / `elab-gdpr-db users` | list users from the database |
+| `gdpr_db_full.sh 2` | 1-click shell wrapper (server) - shorthand for `--users 2` |
 
 Shared options: `--dry-run` (count only), `--with-files` (also download file contents; default: metadata only),
 `--users 75,82` (override user IDs), `--json` (machine-readable output),
 `--env-file PATH` (different credentials file), `--no-color`.
+DB pipeline adds: `--no-archived` (skip state=2 uploads), `--db-container`,
+`--db-name`, `--db-env-file` (autodetect overrides).
 
 Color output works in Windows CMD and PowerShell through `colorama`. It is
 automatically disabled when stdout is redirected or piped, and can always be
@@ -72,9 +108,11 @@ environment is kept locally under `%LOCALAPPDATA%` in that case.
 - **Colors:** on Windows 10+ consoles ANSI colors are enabled via colorama;
   on older Windows they stay disabled automatically.
 
-After an API export, the tool prints the remaining DB/CLI steps. The API
-export is not the complete disclosure: audit logs, failed login attempts and
-some self-scoped metadata require the separate `gdpr_cli.sql` workflow. See
+After an API export, the tool prints the remaining DB/CLI steps and writes
+`LIMITATIONS.md` into the package. The API export is not the complete
+disclosure: audit logs, failed login attempts and some self-scoped metadata
+require the separate `gdpr_cli.sql` workflow - or simply use Pipeline B
+(`elab-gdpr-db`), which includes all of it in one go. See
 [docs/api-vs-cli.md](docs/api-vs-cli.md) before sending the package. Review
 and redact third-party data before disclosure.
 
@@ -118,6 +156,7 @@ Per user (in `output/User<id>/`):
 **Not covered by the API** (DB/CLI only, see `gdpr_cli.sql`): audit_logs,
 authfail, changelog (structured), other users' api_keys/exports/todolist/
 unfinished_steps/favtags/pins/sig_keys, exclusive_edit_mode, lockout_devices.
+**All of these ARE covered by Pipeline B** (`elab-gdpr-db`).
 Detailed mapping: [docs/api-vs-cli.md](docs/api-vs-cli.md)
 
 The API export is not the complete disclosure by itself. The DB-only part
@@ -125,8 +164,9 @@ The API export is not the complete disclosure by itself. The DB-only part
 is documented in [gdpr_cli.sql](gdpr_cli.sql) and
 [docs/api-vs-cli.md](docs/api-vs-cli.md). Run that separate step once per
 request if you have database access, then review and redact third-party data
-before sending the disclosure. The CLI prints these next steps after every
-non-JSON export or full-run command.
+before sending the disclosure. Or skip the extra step entirely: Pipeline B
+(`elab-gdpr-db --users <id> --with-files`) produces the complete package in
+one command, including archived uploads.
 
 The run log is written to `output/gdpr.log`. It records the processing run for
 accountability, but it is not itself the complete disclosure. If logs or the
