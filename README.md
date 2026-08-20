@@ -118,6 +118,26 @@ The run log is `output/gdpr.log` (accountability, Art. 5(2)).
 - Windows without admin rights: the venv lives under `%LOCALAPPDATA%`, no elevation needed; UNC shares work via `pushd`; `PYTHONUTF8=1` handles umlauts.
 - Not legal advice — involve a DPO/lawyer in dispute cases.
 
+### Verifying every data category (test data)
+
+`test_seed.sql` inserts one `GDPR-*` test record per data category (ROR,
+team groups, tags/pins/favtags, storage, compounds, request actions,
+procurement, notifications, todolist, exports, API keys, sig keys,
+templates/types + steps, foreign-entry comments, name mentions, signatures)
+so a dry-run or full export shows every appendix section with a non-zero
+count. `test_cleanup.sql` removes exactly those records again:
+
+```bash
+# after a full export, verify: dry-run shows every category > 0
+python3 gdpr_db_full.py --users 2 --dry-run
+
+# cleanup (seed again afterwards if you want to re-verify)
+docker exec -i -e MYSQL_PWD="$PW" elab-mysql mysql -uelabftw elabftw < test_cleanup.sql
+```
+
+Only `GDPR-*`-prefixed records (and the exact dummy key values) are touched —
+imported production data is never modified.
+
 ## Project layout
 
 ```
