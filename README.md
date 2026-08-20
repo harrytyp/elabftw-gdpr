@@ -118,25 +118,28 @@ The run log is `output/gdpr.log` (accountability, Art. 5(2)).
 - Windows without admin rights: the venv lives under `%LOCALAPPDATA%`, no elevation needed; UNC shares work via `pushd`; `PYTHONUTF8=1` handles umlauts.
 - Not legal advice — involve a DPO/lawyer in dispute cases.
 
-### Verifying every data category (test data)
+### Verifying every data category
 
-`test_seed.sql` inserts one `GDPR-*` test record per data category (ROR,
+`tests/test_seed.sql` inserts one `GDPR-*` record per data category — ROR,
 team groups, tags/pins/favtags, storage, compounds, request actions,
 procurement, notifications, todolist, exports, API keys, sig keys,
-templates/types + steps, foreign-entry comments, name mentions, signatures)
+templates/types + steps, foreign-entry comments, name mentions, signatures —
 so a dry-run or full export shows every appendix section with a non-zero
-count. `test_cleanup.sql` removes exactly those records again:
+count. Run it against a **test database** (never production!), then verify,
+then remove with `tests/test_cleanup.sql`:
 
 ```bash
-# after a full export, verify: dry-run shows every category > 0
-python3 gdpr_db_full.py --users 2 --dry-run
-
-# cleanup (seed again afterwards if you want to re-verify)
-docker exec -i -e MYSQL_PWD="$PW" elab-mysql mysql -uelabftw elabftw < test_cleanup.sql
+docker exec -i -e MYSQL_PWD="$PW" elab-mysql mysql -uelabftw elabftw < tests/test_seed.sql
+python3 gdpr_db_full.py --users 2 --dry-run   # every category > 0
+docker exec -i -e MYSQL_PWD="$PW" elab-mysql mysql -uelabftw elabftw < tests/test_cleanup.sql
 ```
 
-Only `GDPR-*`-prefixed records (and the exact dummy key values) are touched —
-imported production data is never modified.
+Adjust `@uid` / `@foreign_uid` / `@subject_name` at the top of the seed file
+to your test instance (the shipped defaults use the canonical test subject
+"max mustermann"). Only `GDPR-*`-prefixed records (and the exact dummy
+key values) are touched — production data is never modified. The test SQL is
+deliberately not part of the CLI runtime: it lives in `tests/` and is only
+used for verification.
 
 ## Project layout
 

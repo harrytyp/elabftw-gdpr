@@ -573,6 +573,9 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
     uploads_total = manifest.get("uploads_total",
                                  manifest.get("upload_files_downloaded", 0))
     uploads_archived = manifest.get("uploads_archived")
+    subject_name = user.get("fullname") or \
+        f"{user.get('firstname', '')} {user.get('lastname', '')}".strip() or \
+        f"User {user.get('userid', '')}"
 
     doc = SimpleDocTemplate(str(pdf_path), pagesize=A4,
                             leftMargin=20 * mm, rightMargin=20 * mm,
@@ -587,7 +590,8 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
     story = [
         Paragraph("GDPR data subject access request (Art. 15) - Summary", h1),
         Paragraph(
-            f"<b>{escape(user.get('fullname'))}</b><br/>Email: {escape(user.get('email'))} · "
+            f"<b>{escape(subject_name)}</b><br/>"
+            f"Email: {escape(user.get('email'))} · "
             f"User ID: {escape(user.get('userid'))}<br/>Account created: {format_ts(user.get('created_at'))} · "
             f"Last login: {format_ts(user.get('last_login'))} · Export: {format_ts(manifest.get('exported_at'))}",
             body),
@@ -633,7 +637,14 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
             "(data processing agreement). Retention: account data until account deletion/archiving; "
             "lab notebook content according to legal retention obligations (e.g. GxP, German Commercial "
             "Code § 257 HGB); audit/log data per the operator's retention schedule; backups rotate "
-            "according to the backup policy.", body),
+            "according to the backup policy. "
+            "Source of the data: information you provided and content you created while using the "
+            "service, plus system-generated records (login timestamps, audit trail, upload history) "
+            "(Art. 15(1)(g) GDPR). "
+            "Automated decision-making: no automated decision-making, including profiling, takes place "
+            "(Art. 22 GDPR). "
+            "Transfers: no transfer to third countries or international organisations takes place; "
+            "recipients within the EEA only (Art. 15(1)(f) GDPR).", body),
         Paragraph("4. Data not included (categories only)", h2),
         Paragraph(
             "Password hashes, MFA secrets, reset tokens, API key hashes and signing keys are stored "

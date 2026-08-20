@@ -2,17 +2,22 @@
 -- eLabFTW GDPR tool - test data seed (all categories verifiable)
 -- ============================================================================
 -- Inserts one GDPR-* test record per data category so a dry-run / full export
--- shows every appendix section with a non-zero count. Run against the live DB:
+-- shows every appendix section with a non-zero count. Run against a TEST
+-- database (never against production!):
 --
---   docker exec -i -e MYSQL_PWD="$PW" elab-mysql mysql -uelabftw elabftw < test_seed.sql
+--   docker exec -i -e MYSQL_PWD="$PW" elab-mysql mysql -uelabftw elabftw < tests/test_seed.sql
 --
--- Remove everything again with test_cleanup.sql. The GDPR- prefix marks all
--- records as test data. Real (imported) test content stays untouched.
+-- Remove everything again with tests/test_cleanup.sql. The GDPR- prefix marks
+-- all records as test data. Real (imported) test content stays untouched.
 --
 -- NOTE: some columns are JSON or int enums - values match the 5.6.x schema.
+-- Adjust @uid to the test subject's user ID; @foreign_uid is a second user
+-- (e.g. the sysadmin) used for foreign-entry / third-party-mention tests.
 -- ============================================================================
 
-SET @uid = 2;  -- the test subject (max.mustermann@tum.de)
+SET @uid = 2;           -- test subject: max mustermann
+SET @foreign_uid = 1;   -- second user (sysadmin) for foreign-entry tests
+SET @subject_name = 'max mustermann';  -- the subject's display name (for name_mentions)
 
 -- 1) ROR affiliation
 INSERT INTO users2rors (users_id, ror, created_at)
@@ -47,7 +52,7 @@ VALUES (@comp, 1, NOW(), NOW());
 
 -- 6) request action targeting the user (action is int enum)
 INSERT INTO experiments_request_actions (action, entity_id, requester_userid, target_userid, state, created_at)
-VALUES (1, 1, 1, @uid, 1, NOW());
+VALUES (1, 1, @foreign_uid, @uid, 1, NOW());
 
 -- 7) procurement request by the user
 INSERT INTO procurement_requests (body, entity_id, requester_userid, qty_ordered, qty_received, state, team, created_at)
@@ -96,22 +101,24 @@ VALUES (@uid, 1, 'GDPR-ItemType-1', 'itype body',
 SET @itype = LAST_INSERT_ID();
 INSERT INTO items_types_steps (item_id, body, ordering) VALUES (@itype, 'GDPR itype step', 1);
 
--- 15) foreign entry (owned by user 1) + comments:
---     a) comment BY the user on a foreign entry -> comments_on_other_entries
+-- 15) foreign entry (owned by the foreign user) + comments:
+--     a) comment BY the subject on a foreign entry -> comments_on_other_entries
 --     b) comment by ANOTHER user mentioning the subject -> name_mentions
 INSERT INTO experiments (userid, team, title, body, date, elabid, canread, canwrite, state, created_at, modified_at)
-VALUES (1, 1, 'GDPR-Foreign-Exp', 'foreign body', '2026-08-20', 'gdpr-foreign-test',
+VALUES (@foreign_uid, 1, 'GDPR-Foreign-Exp', 'foreign body', '2026-08-20', 'gdpr-foreign-test',
         '{"teams": [], "users": [], "teamgroups": []}',
         '{"teams": [], "users": [], "teamgroups": []}', 1, NOW(), NOW());
 SET @fexp = LAST_INSERT_ID();
 INSERT INTO experiments_comments (item_id, userid, comment, created_at, modified_at, immutable)
-VALUES (@fexp, @uid, 'GDPR user2 comment on foreign entry', NOW(), NOW(), 0);
+VALUES (@fexp, @uid, 'GDPR subject comment on foreign entry', NOW(), NOW(), 0);
+-- the name-mention comment should mention the subject's name (set below)
 INSERT INTO experiments_comments (item_id, userid, comment, created_at, modified_at, immutable)
-VALUES (@fexp, 1, 'GDPR mention max mustermann on foreign entry', NOW(), NOW(), 0);
+VALUES (@fexp, @foreign_uid, CONCAT('GDPR mention ', @subject_name, ' on foreign entry'), NOW(), NOW(), 0);
 
--- 16) third-party comment on the user's OWN entry (by another user)
+-- 16) third-party comment on the subject's OWN entry (by the foreign user)
 INSERT INTO experiments_comments (item_id, userid, comment, created_at, modified_at, immutable)
-VALUES (1, 1, 'GDPR comment by admin on user2 entry', NOW(), NOW(), 0);
+VALUES (1, @foreign_uid, 'GDPR comment by other user on subject entry', NOW(), NOW(), 0);
 
 -- 17) signature on own entry
-UPDATE experiments SET last_signed_by=1, timestampedby=1, signature_count=1, timestamped=1 WHERE id=1;
+UPDATE experiments SET last_signed_by=@foreign_uid, timestampedby=@foreign_uid,
+       signature_count=1, timestamped=1 WHERE id=1;
