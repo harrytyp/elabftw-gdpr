@@ -10,14 +10,14 @@ Subcommands (default: all):
   status   show what is currently in output/
   config   show or update credentials (elabftw.env)
 
-Options common to export/all are passed through (--dry-run, --no-files,
+Options common to export/all are passed through (--dry-run, --with-files,
 --users, --json, --env-file). Works on Linux, macOS and Windows
 (Windows: gdpr.bat or `py -3 gdpr.py`).
 
 Examples:
   gdpr.py                          # export + report for ELAB_USERID
   gdpr.py --dry-run                # count only, write nothing
-  gdpr.py export --no-files        # metadata only (small, fast)
+  gdpr.py --with-files             # also download file contents (slower, larger)
   gdpr.py export --users 75,82 --json
   gdpr.py users                    # list user IDs from the instance
   gdpr.py status --json
@@ -225,9 +225,9 @@ def cmd_export(args) -> int:
 
     if args.json:
         with contextlib.redirect_stdout(sys.stderr):
-            results = export_users(env, users, Path(args.out_dir), args.dry_run, args.no_files)
+            results = export_users(env, users, Path(args.out_dir), args.dry_run, args.with_files and not args.no_files)
     else:
-        results = export_users(env, users, Path(args.out_dir), args.dry_run, args.no_files)
+        results = export_users(env, users, Path(args.out_dir), args.dry_run, args.with_files and not args.no_files)
     ok = sum(1 for v in results.values() if v is not None)
     if args.json:
         # Keep stdout valid JSON for pipes and automation. Human progress goes
@@ -267,10 +267,10 @@ def cmd_all(args) -> int:
         print(color("No users selected - aborting.", "red"))
         return 2
 
-    logger.info("Run: users=%s dry_run=%s no_files=%s", users, args.dry_run, args.no_files)
+    logger.info("Run: users=%s dry_run=%s with_files=%s", users, args.dry_run, args.with_files and not args.no_files)
     print(f"[gdpr] Exporting data for {len(users)} user(s)...")
     base_dir = Path(args.out_dir)
-    results = export_users(env, users, base_dir, args.dry_run, args.no_files)
+    results = export_users(env, users, base_dir, args.dry_run, args.with_files and not args.no_files)
     ok = sum(1 for v in results.values() if v is not None)
     if ok != len(users):
         logger.error("Export incomplete: %s/%s users", ok, len(users))
@@ -386,8 +386,10 @@ def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--dry-run", action="store_true",
                         help="only fetch and count, write nothing")
+    common.add_argument("--with-files", action="store_true",
+                        help="also download upload file contents (default: metadata only)")
     common.add_argument("--no-files", action="store_true",
-                        help="skip uploading file contents (fast, small)")
+                        help=argparse.SUPPRESS)  # compat: now the default, kept for backward compat
     common.add_argument("--users", default=None,
                         help="comma-separated user IDs (default: ELAB_USERID)")
     common.add_argument("--env-file", default=None,
@@ -405,7 +407,7 @@ def build_parser() -> argparse.ArgumentParser:
             "Examples:\n"
             "  gdpr.py                      export + report (ELAB_USERID)\n"
             "  gdpr.py --dry-run            count only\n"
-            "  gdpr.py export --no-files    metadata only\n"
+            "  gdpr.py --with-files         also download file contents\n"
             "  gdpr.py export --users 75,82 --json\n"
             "  gdpr.py users                list users from the instance\n"
             "  gdpr.py status               what is in output/\n"

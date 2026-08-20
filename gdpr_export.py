@@ -11,10 +11,12 @@ NOT covered by the API (needs DB/CLI access - see ``gdpr_cli.sql``):
   exclusive_edit_mode, lockout_devices
 
 Standalone usage:
-  gdpr_export.py [--users 75,82] [--dry-run] [--no-files] [--json]
+  gdpr_export.py [--users 75,82] [--dry-run] [--with-files] [--json]
                  [--env-file PATH]
 
 Usually invoked through the gdpr.py entry point (subcommand "export").
+Default: metadata only (upload file contents excluded); use --with-files
+to include them.
 Credentials: ELAB_URL / ELAB_KEY / ELAB_USERID from elabftw.env or
 environment variables (env wins).
 """
@@ -32,8 +34,8 @@ from pathlib import Path
 import elabapy
 import requests
 
-# elabapy raises requests.HTTPError from send_req, not its own Error class
-HTTP_ERRORS = (elabapy.Error, requests.HTTPError)
+# elabapy raises requests.HTTPError, but with timeout patch it also raises Timeout/ConnectionError
+HTTP_ERRORS = (elabapy.Error, requests.RequestException)
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 ENV_FILE = PROJECT_ROOT / "elabftw.env"
@@ -105,7 +107,7 @@ def save_json(out_dir: Path, name: str, data) -> None:
 
 
 def export_one_user(manager: elabapy.Manager, target: int, out_dir: Path,
-                    dry_run: bool, no_files: bool) -> tuple[bool, dict]:
+                    dry_run: bool, with_files: bool) -> tuple[bool, dict]:
     """Export all API-reachable personal data for a single user.
 
     Returns (success, counts-dict); counts is empty on failure.
@@ -224,7 +226,7 @@ def export_one_user(manager: elabapy.Manager, target: int, out_dir: Path,
             logger.warning("user %s: %s/%s/uploads: %s", target, et, eid, e)
             continue
         upload_meta[(et, eid)] = uploads
-        if not no_files:
+        if with_files:
             for upload in uploads:
                 uid = upload["id"]
                 try:
@@ -350,15 +352,15 @@ def export_one_user(manager: elabapy.Manager, target: int, out_dir: Path,
 
 
 def export_users(env: dict, users: list[int], base_dir: Path,
-                 dry_run: bool, no_files: bool) -> dict:
+                 dry_run: bool, with_files: bool) -> dict:
     """Export all listed users; returns {userid: counts} (empty counts on failure)."""
     manager = get_manager(env)
     results = {}
     for uid in users:
         print(f"\n===== User {uid} =====")
-        logger.info("Export user %s (dry_run=%s, no_files=%s)", uid, dry_run, no_files)
+        logger.info("Export user %s (dry_run=%s, with_files=%s)", uid, dry_run, with_files)
         out_dir = base_dir / f"User{uid}"
-        ok, counts = export_one_user(manager, uid, out_dir, dry_run, no_files)
+        ok, counts = export_one_user(manager, uid, out_dir, dry_run, with_files)
         results[uid] = counts if ok else None
         logger.info("User %s export %s", uid, "ok" if ok else "failed")
     return results
@@ -375,8 +377,10 @@ def main() -> int:
                         help="base directory for the per-user export folders")
     parser.add_argument("--dry-run", action="store_true",
                         help="only fetch and count, write nothing")
+    parser.add_argument("--with-files", action="store_true",
+                        help="also download upload file contents (default: metadata only)")
     parser.add_argument("--no-files", action="store_true",
-                        help="skip downloading upload file contents")
+                        help=argparse.SUPPRESS)  # compat: old name for the default
     parser.add_argument("--json", action="store_true",
                         help="print the summary as JSON on stdout")
     args = parser.parse_args()
@@ -392,7 +396,8 @@ def main() -> int:
         print("No user IDs given - use --users 75,82 or set ELAB_USERID")
         return 2
 
-    results = export_users(env, users, Path(args.out_dir), args.dry_run, args.no_files)
+    with_files = bool(args.with_files) and not bool(args.no_files)
+    results = export_users(env, users, Path(args.out_dir), args.dry_run, with_files)
     ok = sum(1 for v in results.values() if v is not None)
 
     if args.json:

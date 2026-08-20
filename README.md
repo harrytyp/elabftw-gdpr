@@ -42,7 +42,7 @@ output/gdpr.log                     <- run log (Art. 5(2) GDPR accountability)
 | `gdpr.py config show` | show config (never the key) |
 | `gdpr.py config set userid 75,82` | update user IDs in the env file |
 
-Shared options: `--dry-run` (count only), `--no-files` (skip file downloads),
+Shared options: `--dry-run` (count only), `--with-files` (also download file contents; default: metadata only),
 `--users 75,82` (override user IDs), `--json` (machine-readable output),
 `--env-file PATH` (different credentials file), `--no-color`.
 
@@ -92,7 +92,7 @@ Examples:
 
 ```bash
 ./gdpr.py --dry-run                  # count only, write nothing
-./gdpr.py export --no-files          # metadata only (fast, small)
+./gdpr.py --with-files               # also download file contents (slower, larger)
 ./gdpr.py export --users 75,82 --json
 ./gdpr.py report --user 75           # rebuild report for one user
 ./gdpr.py users                      # find user IDs
@@ -112,7 +112,7 @@ Per user (in `output/User<id>/`):
 - all entities owned by the user (experiments, items, templates, item types -
   owner filter, including archived and soft-deleted) with comments, revisions,
   steps, tags, request actions
-- uploads: metadata and file contents (original file names)
+- uploads: metadata (always) and file contents on request (`--with-files`, original file names)
 - HTML explorer with thumbnails, PDF disclosure letter, ZIP archive
 
 **Not covered by the API** (DB/CLI only, see `gdpr_cli.sql`): audit_logs,
@@ -186,5 +186,6 @@ fully readable/runnable without instance access.
   instead of query string by default - all query calls therefore use
   `param_name="params"`.
 - Colored output is auto-disabled for pipes/cron and honors `NO_COLOR`.
-- For very large archives: use `--no-files` and provide files separately.
+- Default is metadata only (upload file contents excluded); use `--with-files`
+  to include them. For very large instances this keeps the package small.
 - Not legal advice - involve a DPO/lawyer in dispute cases.
