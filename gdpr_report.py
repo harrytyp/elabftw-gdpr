@@ -330,6 +330,30 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
     uploads_active = manifest.get("uploads_active")
     uploads_archived = manifest.get("uploads_archived")
 
+    # In DB mode the top-level sections (notifications, groups, procurement,
+    # bookings, request actions) live in db_appendix.json - the manifest only
+    # has counts. Fill them so the summary cards/tables are not empty.
+    if is_db and db_appendix:
+        appx = db_appendix
+        if not notifications and appx.get("notifications"):
+            notifications = [dict(zip(("id", "created_at", "category", "is_ack",
+                                       "body"), r)) for r in appx["notifications"]]
+        if not groups and appx.get("team_groups"):
+            groups = [{"id": r[0], "name": f"Group {r[0]}"} for r in appx["team_groups"]]
+        if not procurement and appx.get("procurement"):
+            procurement = [dict(zip(("id", "created_at", "entity_id", "qty_ordered",
+                                     "qty_received", "state", "team"), r))
+                           for r in appx["procurement"]]
+        if not bookings and appx.get("bookings"):
+            bookings = [dict(zip(("id", "title", "start", "end", "team",
+                                  "experiment", "item", "created_at"), r))
+                        for r in appx["bookings"]]
+        if not request_actions_user and appx.get("request_actions"):
+            request_actions_user = [
+                dict(zip(("t", "action", "created_at", "state", "entity_id",
+                          "requester_userid", "target_userid"), r))
+                for r in appx["request_actions"]]
+
     # Entity pages + overview links
     entry_links = []
     counts = {}
