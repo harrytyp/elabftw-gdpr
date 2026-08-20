@@ -57,6 +57,7 @@ summary { cursor: pointer; font-weight: 600; }
 .gallery img { display: block; max-width: 180px; max-height: 140px; }
 .file { display: inline-block; background: #eef1f5; border-radius: 6px; padding: 6px 10px; margin: 4px; font-size: 13px; }
 .notice { background: #fff7e0; border: 1px solid #e5cf8a; border-radius: 8px; padding: 12px 16px; margin: 12px 0; font-size: 14px; }
+.notice-error { background: #fdecea; border-color: #e5b4ad; color: #8b2e24; }
 .back { display: inline-block; margin-bottom: 12px; color: #16324f; }
 td.klein { font-size: 13px; color: #5a6570; }
 """
@@ -301,12 +302,18 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
     manifest = read_json(out_dir / "manifest.json") or {}
     lookups = manifest.get("lookups")
     user = manifest.get("user") or {}
-    teams = user.get("teams") or []
+    teams = manifest.get("teams") or user.get("teams") or []
     notifications = manifest.get("notifications") or []
     groups = manifest.get("groups") or []
     procurement = manifest.get("procurement") or []
     bookings = manifest.get("bookings") or []
     request_actions_user = manifest.get("request_actions_user") or []
+    is_db = manifest.get("source") == "db"
+    db_appendix = read_json(out_dir / "db_appendix.json") if is_db else None
+    uploads_total = manifest.get("uploads_total",
+                                 manifest.get("upload_files_downloaded", 0))
+    uploads_active = manifest.get("uploads_active")
+    uploads_archived = manifest.get("uploads_archived")
 
     # Entity pages + overview links
     entry_links = []
@@ -366,13 +373,55 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
             ("Items", counts["items"]),
             ("Templates", counts["experiments_templates"]),
             ("Item types", counts["items_types"]),
-            ("Uploads", manifest.get("upload_files_downloaded", 0)),
+            ("Uploads", uploads_total),
             ("Notifications", len(notifications)),
             ("Bookings", len(bookings)),
             ("Groups", len(my_groups)),
             ("Procurement", len(procurement)),
         ]
     )
+
+    # DB appendix rows (pipeline B)
+    appendix_sections = ""
+    if db_appendix:
+        def _rows(name, cols):
+            return "".join(
+                "<tr>" + "".join(f"<td>{escape(c)}</td>" for c in row[:len(cols)]) + "</tr>"
+                for row in db_appendix.get(name, [])
+            )
+        appendix_sections = f"""
+<h2>DB appendix (audit trail, logins, changelog, keys)</h2>
+<p><b>Source:</b> direct database export (no API key). Includes all uploads
+(active {uploads_active or '?'}, archived {uploads_archived or '?'}) and records
+that are not reachable via the API.</p>
+<h3>Audit trail ({len(db_appendix.get('audit_logs', []))})</h3>
+<table><tr><th>Date</th><th>Category</th><th>Requester</th><th>Target</th><th>Body (truncated)</th></tr>{_rows('audit_logs', 5)}</table>
+<h3>Failed logins ({len(db_appendix.get('authfail', []))})</h3>
+<table><tr><th>Attempt time</th></tr>{_rows('authfail', 1)}</table>
+<h3>Changelog ({len(db_appendix.get('changelog', []))})</h3>
+<table><tr><th>Type</th><th>Date</th><th>Target</th><th>Content</th></tr>{_rows('changelog', 4)}</table>
+<h3>API keys ({len(db_appendix.get('api_keys', []))})</h3>
+<table><tr><th>ID</th><th>Name</th><th>Created</th><th>Last used</th><th>Write</th></tr>{_rows('api_keys', 5)}</table>
+<h3>Exports ({len(db_appendix.get('exports', []))})</h3>
+<table><tr><th>ID</th><th>Date</th><th>State</th><th>Format</th></tr>{_rows('exports', 4)}</table>
+<h3>Todolist ({len(db_appendix.get('todolist', []))})</h3>
+<table><tr><th>ID</th><th>Created</th><th>Body</th></tr>{_rows('todolist', 3)}</table>
+<h3>Sig keys ({len(db_appendix.get('sig_keys', []))}) / Favorites ({len(db_appendix.get('favtags', []))})</h3>
+<table><tr><th>Sig key ID</th><th>Created</th><th>State</th></tr>{_rows('sig_keys', 3)}</table>
+"""
+
+    # API-mode limitation banner (pipeline A stays transparent)
+    limitation_note = ""
+    if not is_db:
+        limitation_note = f"""
+<div class="notice notice-error"><b>API-Limitation:</b> This report was created
+from the API only (1-click). The following data is NOT included and must be added
+via <code>gdpr_cli.sql</code> or the DB pipeline
+(<code>elab-gdpr-db --users {escape(user.get('userid', ''))}</code>):
+audit_logs, authfail, changelog, api_keys, exports, todolist, sig_keys, favtags,
+and archived uploads (state=2, {uploads_archived or 'n/a'} additional files).
+See LIMITATIONS.md in this package.</div>
+"""
 
     (report_dir / "index.html").write_text(f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
@@ -387,6 +436,8 @@ for the data subject only. Third-party content (co-authors, reviewer comments, n
 audit logs) must be redacted before sharing (Art. 15(4) GDPR). Raw values such as password
 hashes, MFA secrets or tokens are deliberately not included - they are only listed as
 categories (see PDF).</div>
+
+{limitation_note}
 
 <h2>Overview</h2><div class="cards">{cards}</div>
 
@@ -414,6 +465,8 @@ categories (see PDF).</div>
 <ul>
 <li>audit_logs, authfail, changelog (structured), api_keys, exports, todolist, unfinished_steps, favtags, pins, sig_keys, edit_mode, lockout_devices</li>
 </ul>
+
+{appendix_sections}
 </div></body></html>""")
 
 
@@ -424,9 +477,13 @@ categories (see PDF).</div>
 def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
     manifest = read_json(out_dir / "manifest.json") or {}
     user = manifest.get("user") or {}
-    teams = user.get("teams") or []
+    teams = manifest.get("teams") or user.get("teams") or []
     entities = manifest.get("entities", {})
     counts = {et: len(ids) for et, ids in entities.items()}
+    is_db = manifest.get("source") == "db"
+    uploads_total = manifest.get("uploads_total",
+                                 manifest.get("upload_files_downloaded", 0))
+    uploads_archived = manifest.get("uploads_archived")
 
     doc = SimpleDocTemplate(str(pdf_path), pagesize=A4,
                             leftMargin=20 * mm, rightMargin=20 * mm,
@@ -462,7 +519,7 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
             ("Items (resources)", counts["items"]),
             ("Templates", counts["experiments_templates"]),
             ("Item types", counts["items_types"]),
-            ("Upload files", manifest.get("upload_files_downloaded", 0)),
+            ("Upload files", uploads_total),
             ("Notifications", len(manifest.get("notifications") or [])),
             ("Bookings", len(manifest.get("bookings") or [])),
             ("Groups", len(manifest.get("groups") or [])),
@@ -492,9 +549,14 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
         Paragraph(
             "Password hashes, MFA secrets, reset tokens, API key hashes and signing keys are stored "
             "hashed/encrypted only and are not handed out for security reasons (Art. 32 GDPR). "
-            "Audit trail, failed login attempts, todolist, export history, favourites/pins and lock "
-            "states are not retrievable via the API and can be supplied on request (database extract). "
-            "Third-party portions of shared content may have been redacted (Art. 15(4) GDPR).", body),
+            + ("The audit trail, failed login attempts, changelog, todolist, export history and "
+               "favourites are included in this package (direct database export). "
+               if is_db else
+               "Audit trail, failed login attempts, todolist, export history, favourites/pins and lock "
+               "states are not retrievable via the API and can be supplied on request (database extract). ")
+            + f"Archived uploads: {uploads_archived or 0} files are only listed as metadata "
+            + ("(included in this package). " if is_db else "(not downloaded with the API). ")
+            + "Third-party portions of shared content may have been redacted (Art. 15(4) GDPR).", body),
         Paragraph("5. Your rights", h2),
         Paragraph(
             "Rectification (Art. 16), erasure (Art. 17 - subject to legal retention obligations), "
