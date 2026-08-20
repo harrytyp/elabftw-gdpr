@@ -408,6 +408,26 @@ that are not reachable via the API.</p>
 <table><tr><th>ID</th><th>Created</th><th>Body</th></tr>{_rows('todolist', 3)}</table>
 <h3>Sig keys ({len(db_appendix.get('sig_keys', []))}) / Favorites ({len(db_appendix.get('favtags', []))})</h3>
 <table><tr><th>Sig key ID</th><th>Created</th><th>State</th></tr>{_rows('sig_keys', 3)}</table>
+<h3>Pins ({len(db_appendix.get('pins', []))})</h3>
+<table><tr><th>Type</th><th>Entity ID</th></tr>{_rows('pins', 2)}</table>
+<h3>Team groups ({len(db_appendix.get('team_groups', []))})</h3>
+<table><tr><th>Group ID</th></tr>{_rows('team_groups', 1)}</table>
+<h3>Storage history ({len(db_appendix.get('storage_history', []))})</h3>
+<table><tr><th>Date</th><th>Storage unit</th><th>Old parent</th><th>New parent</th></tr>{_rows('storage_history', 4)}</table>
+<h3>Compounds ({len(db_appendix.get('compounds', []))})</h3>
+<table><tr><th>ID</th><th>Name</th><th>IUPAC</th><th>CAS</th><th>Created</th></tr>{_rows('compounds', 5)}</table>
+<h3>Request actions ({len(db_appendix.get('request_actions', []))})</h3>
+<table><tr><th>Type</th><th>Action</th><th>Date</th><th>State</th><th>Entity</th></tr>{_rows('request_actions', 5)}</table>
+<h3>Procurement ({len(db_appendix.get('procurement', []))})</h3>
+<table><tr><th>ID</th><th>Date</th><th>Entity</th><th>Qty</th><th>State</th></tr>{_rows('procurement', 5)}</table>
+<h3>Notifications ({len(db_appendix.get('notifications', []))})</h3>
+<table><tr><th>ID</th><th>Date</th><th>Category</th><th>Read</th><th>Body</th></tr>{_rows('notifications', 5)}</table>
+<h3>Entity links ({len(db_appendix.get('links', []))})</h3>
+<table><tr><th>Type</th><th>Item</th><th>Link</th></tr>{_rows('links', 3)}</table>
+<h3>Third-party comments on your entries ({len(db_appendix.get('third_party_mentions', []))})</h3>
+<p class="notice notice-error"><b>Redact before sending (Art. 15(4)):</b> these are comments
+by OTHER users on your entries - they may contain third-party personal data.</p>
+<table><tr><th>Type</th><th>Entity</th><th>User</th><th>Date</th><th>Comment</th></tr>{_rows('third_party_mentions', 5)}</table>
 """
 
     # API-mode limitation banner (pipeline A stays transparent)

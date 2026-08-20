@@ -127,6 +127,58 @@ SELECT id, created_at, last_used_at, state, type, pubkey FROM sig_keys WHERE use
 -- 8) favorite tags
 SELECT tags_id FROM favtags2users WHERE users_id = @uid;
 
+-- 9) pins (4 tables - named pin_*2users in this version)
+SELECT 'experiments' AS t, entity_id FROM pin_experiments2users WHERE users_id = @uid
+UNION ALL SELECT 'items', entity_id FROM pin_items2users WHERE users_id = @uid
+UNION ALL SELECT 'experiments_templates', entity_id FROM pin_experiments_templates2users WHERE users_id = @uid
+UNION ALL SELECT 'items_types', entity_id FROM pin_items_types2users WHERE users_id = @uid;
+
+-- 10) team group memberships
+SELECT groupid FROM users2team_groups WHERE userid = @uid;
+
+-- 11) storage unit movement history
+SELECT created_at, storage_unit_id, old_parent_id, new_parent_id
+  FROM storage_units_history WHERE users_id = @uid;
+
+-- 12) chemical compounds created by the user
+SELECT id, name, iupac_name, cas_number, smiles, created_at, team
+  FROM compounds WHERE userid = @uid;
+
+-- 13) request actions (requester OR target)
+SELECT 'experiments' AS t, action, created_at, state, entity_id, requester_userid, target_userid
+  FROM experiments_request_actions WHERE requester_userid = @uid OR target_userid = @uid
+UNION ALL
+SELECT 'items', action, created_at, state, entity_id, requester_userid, target_userid
+  FROM items_request_actions WHERE requester_userid = @uid OR target_userid = @uid;
+
+-- 14) procurement requests by the user
+SELECT id, created_at, entity_id, qty_ordered, qty_received, state, team
+  FROM procurement_requests WHERE requester_userid = @uid;
+
+-- 15) notifications for the user
+SELECT id, created_at, category, is_ack, LEFT(body, 120)
+  FROM notifications WHERE userid = @uid;
+
+-- 16) entity links involving the user's entries
+SELECT 'exp-exp' AS t, item_id, link_id FROM experiments2experiments
+ WHERE item_id IN (SELECT id FROM experiments WHERE userid = @uid) OR link_id IN (SELECT id FROM experiments WHERE userid = @uid)
+UNION ALL SELECT 'exp-item', item_id, link_id FROM experiments2items
+ WHERE item_id IN (SELECT id FROM experiments WHERE userid = @uid) OR link_id IN (SELECT id FROM items WHERE userid = @uid)
+UNION ALL SELECT 'item-exp', item_id, link_id FROM items2experiments
+ WHERE item_id IN (SELECT id FROM items WHERE userid = @uid) OR link_id IN (SELECT id FROM experiments WHERE userid = @uid)
+UNION ALL SELECT 'item-item', item_id, link_id FROM items2items
+ WHERE item_id IN (SELECT id FROM items WHERE userid = @uid) OR link_id IN (SELECT id FROM items WHERE userid = @uid);
+
+-- 17) third-party comments on the user's entities (CJEU C-252/21 Meta)
+--     data ABOUT the person from other people's entries - redact before sending!
+SELECT 'experiments_comments' AS t, item_id, userid, created_at, comment
+  FROM experiments_comments
+ WHERE item_id IN (SELECT id FROM experiments WHERE userid = @uid) AND userid <> @uid
+UNION ALL
+SELECT 'items_comments', item_id, userid, created_at, comment
+  FROM items_comments
+ WHERE item_id IN (SELECT id FROM items WHERE userid = @uid) AND userid <> @uid;
+
 -- ---------------------------------------------------------------------------
 -- E) Events / bookings (team_events.userid = owner)
 -- ---------------------------------------------------------------------------

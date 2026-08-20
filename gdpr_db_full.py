@@ -314,6 +314,73 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
     except RuntimeError:
         pass
     try:
+        appendix["pins"] = q(
+            f"SELECT 'experiments' AS t, entity_id FROM pin_experiments2users WHERE users_id={target} "
+            f"UNION ALL SELECT 'items', entity_id FROM pin_items2users WHERE users_id={target} "
+            f"UNION ALL SELECT 'experiments_templates', entity_id FROM pin_experiments_templates2users WHERE users_id={target} "
+            f"UNION ALL SELECT 'items_types', entity_id FROM pin_items_types2users WHERE users_id={target}")
+    except RuntimeError:
+        pass
+    try:
+        appendix["team_groups"] = q(
+            f"SELECT groupid FROM users2team_groups WHERE userid={target}")
+    except RuntimeError:
+        pass
+    try:
+        appendix["storage_history"] = q(
+            f"SELECT created_at, storage_unit_id, old_parent_id, new_parent_id "
+            f"FROM storage_units_history WHERE users_id={target}")
+    except RuntimeError:
+        pass
+    try:
+        appendix["compounds"] = q(
+            f"SELECT id, name, iupac_name, cas_number, smiles, created_at, team "
+            f"FROM compounds WHERE userid={target}")
+    except RuntimeError:
+        pass
+    try:
+        appendix["request_actions"] = q(
+            f"SELECT 'experiments' AS t, action, created_at, state, entity_id, requester_userid, target_userid "
+            f"FROM experiments_request_actions WHERE requester_userid={target} OR target_userid={target} "
+            f"UNION ALL "
+            f"SELECT 'items', action, created_at, state, entity_id, requester_userid, target_userid "
+            f"FROM items_request_actions WHERE requester_userid={target} OR target_userid={target}")
+    except RuntimeError:
+        pass
+    try:
+        appendix["procurement"] = q(
+            f"SELECT id, created_at, entity_id, qty_ordered, qty_received, state, team "
+            f"FROM procurement_requests WHERE requester_userid={target}")
+    except RuntimeError:
+        pass
+    try:
+        appendix["notifications"] = q(
+            f"SELECT id, created_at, category, is_ack, LEFT(body,120) FROM notifications "
+            f"WHERE userid={target}")
+    except RuntimeError:
+        pass
+    try:
+        appendix["links"] = q(
+            f"SELECT 'exp-exp' AS t, item_id, link_id FROM experiments2experiments "
+            f"WHERE item_id IN (SELECT id FROM experiments WHERE userid={target}) OR link_id IN (SELECT id FROM experiments WHERE userid={target}) "
+            f"UNION ALL SELECT 'exp-item', item_id, link_id FROM experiments2items "
+            f"WHERE item_id IN (SELECT id FROM experiments WHERE userid={target}) OR link_id IN (SELECT id FROM items WHERE userid={target}) "
+            f"UNION ALL SELECT 'item-exp', item_id, link_id FROM items2experiments "
+            f"WHERE item_id IN (SELECT id FROM items WHERE userid={target}) OR link_id IN (SELECT id FROM experiments WHERE userid={target}) "
+            f"UNION ALL SELECT 'item-item', item_id, link_id FROM items2items "
+            f"WHERE item_id IN (SELECT id FROM items WHERE userid={target}) OR link_id IN (SELECT id FROM items WHERE userid={target})")
+    except RuntimeError:
+        pass
+    try:
+        appendix["third_party_mentions"] = q(
+            f"SELECT 'experiments_comments' AS t, item_id, userid, created_at, comment "
+            f"FROM experiments_comments WHERE item_id IN (SELECT id FROM experiments WHERE userid={target}) AND userid<>{target} "
+            f"UNION ALL "
+            f"SELECT 'items_comments', item_id, userid, created_at, comment "
+            f"FROM items_comments WHERE item_id IN (SELECT id FROM items WHERE userid={target}) AND userid<>{target}")
+    except RuntimeError:
+        pass
+    try:
         appendix["bookings"] = q(
             f"SELECT id, title, start, end, team, experiment, item, created_at "
             f"FROM team_events WHERE userid={target}")
@@ -328,6 +395,15 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
     counts["todolist"] = len(appendix.get("todolist", []))
     counts["sig_keys"] = len(appendix.get("sig_keys", []))
     counts["favtags"] = len(appendix.get("favtags", []))
+    counts["pins"] = len(appendix.get("pins", []))
+    counts["team_groups"] = len(appendix.get("team_groups", []))
+    counts["storage_history"] = len(appendix.get("storage_history", []))
+    counts["compounds"] = len(appendix.get("compounds", []))
+    counts["request_actions"] = len(appendix.get("request_actions", []))
+    counts["procurement"] = len(appendix.get("procurement", []))
+    counts["notifications"] = len(appendix.get("notifications", []))
+    counts["links"] = len(appendix.get("links", []))
+    counts["third_party_mentions"] = len(appendix.get("third_party_mentions", []))
     counts["bookings"] = len(appendix.get("bookings", []))
 
     if dry_run:
@@ -339,7 +415,10 @@ def export_one_user(target: int, out_dir: Path, conn: dict,
         print(f"uploads:      {counts['uploads']} "
               f"(active {counts['uploads_active']}, archived {counts['uploads_archived']})")
         for k in ("audit_logs", "authfail", "changelog", "api_keys", "exports",
-                  "todolist", "sig_keys", "favtags", "bookings"):
+                  "todolist", "sig_keys", "favtags", "pins", "team_groups",
+                  "storage_history", "compounds", "request_actions",
+                  "procurement", "notifications", "links",
+                  "third_party_mentions", "bookings"):
             print(f"{k:22s} {counts[k]}")
         return True, counts
 
