@@ -137,26 +137,24 @@ The run log is `output/gdpr.log` (accountability, Art. 5(2)).
 
 ### Verifying every data category
 
-`tests/test_seed.sql` inserts one `GDPR-*` record per data category — ROR,
-team groups, tags/pins/favtags, storage, compounds, request actions,
-procurement, notifications, todolist, exports, API keys, sig keys,
-templates/types + steps, foreign-entry comments, name mentions, signatures —
-so a dry-run or full export shows every appendix section with a non-zero
-count. Run it against a **test database** (never production!), then verify,
-then remove with `tests/test_cleanup.sql`:
+`tests/seed_test_data.py` creates **real** eLabFTW records via the instance's
+own API (dedicated test user): experiments, items, templates, item types,
+comments, steps, tags, uploads (real file), status/category, todolist, team
+groups — so a dry-run or full export shows these categories with real data,
+nothing faked:
 
 ```bash
-docker exec -i -e MYSQL_PWD="$PW" elab-mysql mysql -uelabftw elabftw < tests/test_seed.sql
-python3 gdpr_db_full.py --users 2 --dry-run   # every category > 0
-docker exec -i -e MYSQL_PWD="$PW" elab-mysql mysql -uelabftw elabftw < tests/test_cleanup.sql
+ELAB_URL=https://eln.example.org \
+ELAB_KEY=<sysadmin-key> ELAB_USER_KEY=<test-user-key> \
+    python3 tests/seed_test_data.py
+python3 gdpr_db_full.py --users <test-user-id> --dry-run
 ```
 
-Adjust `@uid` / `@foreign_uid` / `@subject_name` at the top of the seed file
-to your test instance (the shipped defaults use the canonical test subject
-"max mustermann"). Only `GDPR-*`-prefixed records (and the exact dummy
-key values) are touched — production data is never modified. The test SQL is
-deliberately not part of the CLI runtime: it lives in `tests/` and is only
-used for verification.
+Categories with no working API route in eLabFTW 5.6 (links, containers,
+request actions, favorites/pins, notifications, authfail, bookings) are
+**documented, not faked** — see `tests/README-testing.md`. The script is
+idempotent (cleans previous `GDPR *` entities first) and only touches the
+test user's data.
 
 ## Project layout
 
@@ -174,6 +172,9 @@ elabftw-gdpr/
 ├── requirements.txt
 ├── elabftw.env.example      <- credentials template (never commit the real one)
 ├── pyproject.toml           <- pip/uv packaging (elab-gdpr, elab-gdpr-db)
+├── tests/
+│   ├── seed_test_data.py    <- create real test data via the API (no fakes)
+│   └── README-testing.md    <- what is seeded / what needs real usage
 ├── README.md
 └── LICENSE                  <- MIT
 ```
