@@ -1,0 +1,9 @@
+[
+  {
+    "id": 1,
+    "name": "Sample Team",
+    "is_admin": 0,
+    "is_owner": 0,
+    "is_archived": 0
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "userid": 1,
+  "email": "sample.user@example.org",
+  "firstname": "Sample",
+  "lastname": "User",
+  "fullname": "Sample User",
+  "created_at": "2024-01-15 09:00:00",
+  "last_login": "2026-08-01 10:00:00",
+  "validated": "1",
+  "is_sysadmin": "0",
+  "lang": "en_GB",
+  "teams": [
+    {
+      "id": 1,
+      "name": "Sample Team",
+      "is_admin": 0,
+      "is_owner": 0,
+      "is_archived": 0
+    }
+  ]
+}

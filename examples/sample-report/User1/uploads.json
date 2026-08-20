@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "real_name": "sample-data.csv",
+    "long_name": "1-sample-data.csv",
+    "comment": "",
+    "item_id": "1",
+    "type": "experiments",
+    "created_at": "2025-03-07 14:00:00",
+    "hash": "abc123",
+    "hash_algorithm": "sha256",
+    "filesize": 2048,
+    "state": "1",
+    "storage": "local"
+  },
+  {
+    "id": 2,
+    "real_name": "sample-log.xlsx",
+    "long_name": "2-sample-log.xlsx",
+    "comment": "",
+    "item_id": "3",
+    "type": "items",
+    "created_at": "2025-04-01 09:00:00",
+    "hash": "def456",
+    "hash_algorithm": "sha256",
+    "filesize": 4096,
+    "state": "1",
+    "storage": "local"
+  }
+]

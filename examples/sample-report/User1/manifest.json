@@ -1,0 +1,79 @@
+{
+  "target_userid": 1,
+  "exported_at": "2026-08-20T12:00:00+0000",
+  "source": "db",
+  "user": {
+    "userid": 1,
+    "email": "sample.user@example.org",
+    "firstname": "Sample",
+    "lastname": "User",
+    "fullname": "Sample User",
+    "created_at": "2024-01-15 09:00:00",
+    "last_login": "2026-08-01 10:00:00",
+    "validated": "1",
+    "is_sysadmin": "0",
+    "lang": "en_GB",
+    "teams": [
+      {
+        "id": 1,
+        "name": "Sample Team",
+        "is_admin": 0,
+        "is_owner": 0,
+        "is_archived": 0
+      }
+    ]
+  },
+  "teams": [
+    {
+      "id": 1,
+      "name": "Sample Team",
+      "is_admin": 0,
+      "is_owner": 0,
+      "is_archived": 0
+    }
+  ],
+  "entities": {
+    "experiments": [
+      1,
+      2
+    ],
+    "items": [
+      3
+    ],
+    "experiments_templates": [
+      4
+    ],
+    "items_types": [
+      5
+    ]
+  },
+  "uploads_total": 1,
+  "uploads_active": 1,
+  "uploads_archived": 0,
+  "upload_files_downloaded": 0,
+  "db_appendix_counts": {
+    "audit_logs": 1,
+    "authfail": 1,
+    "changelog": 1,
+    "api_keys": 1,
+    "exports": 1,
+    "todolist": 1,
+    "sig_keys": 1,
+    "favtags": 1,
+    "pins": 1,
+    "team_groups": 1,
+    "storage_history": 1,
+    "storage_assignments": 1,
+    "compounds": 1,
+    "compound_links": 1,
+    "template_steps": 1,
+    "request_actions": 1,
+    "procurement": 1,
+    "notifications": 1,
+    "links": 1,
+    "third_party_mentions": 0,
+    "comments_on_other_entries": 1,
+    "name_mentions": 0,
+    "bookings": 1
+  }
+}

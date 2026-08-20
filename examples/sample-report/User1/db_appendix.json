@@ -1,0 +1,184 @@
+{
+  "audit_logs": [
+    [
+      "2025-03-01 08:05:00",
+      "New account",
+      "1",
+      "1",
+      "Account created"
+    ]
+  ],
+  "authfail": [
+    [
+      "2025-04-01 09:00:00"
+    ]
+  ],
+  "changelog": [
+    [
+      "experiments",
+      "2025-03-10 10:00:00",
+      "1",
+      "{\"old\": \"a\", \"new\": \"b\"}"
+    ]
+  ],
+  "api_keys": [
+    [
+      "1",
+      "sample-api-key",
+      "2025-03-02 10:00:00",
+      "2025-06-01 00:00:00",
+      "1",
+      "1"
+    ]
+  ],
+  "exports": [
+    [
+      "1",
+      "2025-05-01 12:00:00",
+      "1",
+      "eln",
+      "sample-export.zip",
+      "1024"
+    ]
+  ],
+  "todolist": [
+    [
+      "1",
+      "2025-04-02 08:00:00",
+      "1",
+      "Sample todo item"
+    ]
+  ],
+  "sig_keys": [
+    [
+      "1",
+      "2025-03-03 09:00:00",
+      "2025-06-01 00:00:00",
+      "1",
+      "1",
+      "pubkey-dummy"
+    ]
+  ],
+  "favtags": [
+    [
+      "1"
+    ]
+  ],
+  "pins": [
+    [
+      "experiments",
+      "1"
+    ]
+  ],
+  "team_groups": [
+    [
+      "1"
+    ]
+  ],
+  "storage_history": [
+    [
+      "2025-03-09 10:00:00",
+      "1",
+      null,
+      "2"
+    ]
+  ],
+  "storage_assignments": [
+    [
+      "items",
+      "3",
+      "1",
+      "1",
+      "box",
+      "2025-03-09 10:00:00"
+    ]
+  ],
+  "compounds": [
+    [
+      "1",
+      "Sample Compound",
+      "sample-iupac",
+      "77-88-9",
+      "2025-03-04 09:00:00",
+      "1"
+    ]
+  ],
+  "compound_links": [
+    [
+      "experiments",
+      "1",
+      "1",
+      "2025-03-04 09:05:00"
+    ]
+  ],
+  "template_steps": [
+    [
+      "experiments_templates",
+      "4",
+      "Sample template step",
+      "0",
+      null
+    ]
+  ],
+  "request_actions": [
+    [
+      "experiments",
+      "1",
+      "2025-05-02 10:00:00",
+      "1",
+      "1",
+      "1",
+      "1"
+    ]
+  ],
+  "procurement": [
+    [
+      "1",
+      "2025-05-03 11:00:00",
+      "3",
+      "2",
+      "0",
+      "1",
+      "1"
+    ]
+  ],
+  "notifications": [
+    [
+      "1",
+      "2025-05-04 09:00:00",
+      "1",
+      "0",
+      "{\"message\": \"Sample notification\"}"
+    ]
+  ],
+  "links": [
+    [
+      "exp-item",
+      "1",
+      "3"
+    ]
+  ],
+  "third_party_mentions": [],
+  "comments_on_other_entries": [
+    [
+      "experiments_comments",
+      "9",
+      "1",
+      "2025-06-01 10:00:00",
+      "Sample comment on another user's entry (redacted)"
+    ]
+  ],
+  "name_mentions": [],
+  "bookings": [
+    [
+      "1",
+      "Sample booking",
+      "2025-06-10 09:00:00",
+      "2025-06-10 11:00:00",
+      "1",
+      null,
+      null,
+      "2025-05-20 08:00:00"
+    ]
+  ]
+}
