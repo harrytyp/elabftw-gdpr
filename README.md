@@ -60,6 +60,23 @@ That's it — no API key, no env file. It auto-detects the MySQL container, the 
 
 Result in `output/User42/`: **everything** — all uploads (active + archived, state=2), the audit trail, failed logins, changelog, API keys, export history, todolist, sig keys, favorites, bookings. The HTML report has a "DB appendix" section, `db_appendix.json` is in the ZIP.
 
+### Sample report
+
+Want to see what a disclosure looks like before running anything?
+[`examples/make_sample_report.py`](examples/make_sample_report.py) builds a
+small, fully synthetic disclosure (generic "Sample User" data, one record per
+category — no real data anywhere):
+
+```bash
+python3 examples/make_sample_report.py
+# then open examples/sample-report/User1/index.html
+```
+
+The generated `examples/sample-report/` shows the complete package: HTML
+explorer with all appendix sections (audit trail, failed logins, changelog,
+API keys, exports, todolist, storage, compounds, notifications, entity
+links, name mentions, ...), PDF disclosure letter and ZIP archive.
+
 ---
 
 ## 3. Before sending the disclosure (mandatory)
