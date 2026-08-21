@@ -9,10 +9,14 @@ Two pipelines, one goal: a complete, auditable disclosure.
 
 Verified against eLabFTW 5.6.12 / MySQL 8.4.
 
-**See what you get before running anything:**
-[**📄 Sample disclosure letter (PDF)**](SAMPLE-DISCLOSURE.pdf)
-(fully synthetic data; the interactive HTML version is
-[here](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)).
+**See what you get before running anything** - the sample disclosure
+(below: the letter as PDF, then the interactive HTML explorer):
+
+[![Sample disclosure letter](docs/sample-report/preview-letter.jpg)](SAMPLE-DISCLOSURE.pdf)
+
+[![Sample disclosure HTML explorer](docs/sample-report/preview-html.png)](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)
+
+Both are fully synthetic data. Click the images to open the real files.
 
 ## Table of Contents
 
@@ -159,12 +163,11 @@ The run log is `output/gdpr.log` (accountability, Art. 5(2)).
 
 See exactly what a disclosure looks like before running anything:
 
-**➡️ [📄 Sample disclosure letter (PDF)](SAMPLE-DISCLOSURE.pdf)** - in the repo root,
-fully synthetic "Sample User" data, no real data anywhere. GitHub renders it
-inline in the browser.
-
-**➡️ [Sample disclosure HTML explorer](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)**
-- the interactive version, rendered via GitHub Pages.
+- **[Sample disclosure letter (PDF)](SAMPLE-DISCLOSURE.pdf)** - in the repo
+  root, fully synthetic "Sample User" data, no real data anywhere. GitHub
+  renders it inline in the browser.
+- **[Sample disclosure HTML explorer](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)**
+  - the interactive version, rendered via GitHub Pages.
 
 The complete package you get for every request:
 
