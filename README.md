@@ -13,20 +13,23 @@ Verified against eLabFTW 5.6.12 / MySQL 8.4.
 
 ## 1. Install
 
-**Release:** [github.com/harrytyp/elabftw-gdpr/releases](https://github.com/harrytyp/elabftw-gdpr/releases) (v1.0.0)
+Latest release: [github.com/harrytyp/elabftw-gdpr/releases/latest](https://github.com/harrytyp/elabftw-gdpr/releases/latest)
 
 ```bash
-# Install from the GitHub release (any OS, once):
-pip install https://github.com/harrytyp/elabftw-gdpr/releases/download/v1.0.0/elabftw_gdpr-1.0.0-py3-none-any.whl
+# Install from the repo (default branch = always the latest code):
+pip install git+https://github.com/harrytyp/elabftw-gdpr
 elab-gdpr --users 2          # API pipeline
 elab-gdpr-db --users 2 --with-files   # DB pipeline (no API key)
 
-# Or install straight from the repo (needs git + a Python build backend):
-pip install git+https://github.com/harrytyp/elabftw-gdpr@v1.0.0
+# Or run without installing (uv):
+uvx --from git+https://github.com/harrytyp/elabftw-gdpr elab-gdpr --users 2
 
-# Or run without installing (uv, from the repo):
-uvx --from git+https://github.com/harrytyp/elabftw-gdpr@v1.0.0 elab-gdpr --users 2
+# Prefer a pinned version in production:
+pip install git+https://github.com/harrytyp/elabftw-gdpr@v1.0.0
 ```
+
+Pre-built wheels are attached to each [release](https://github.com/harrytyp/elabftw-gdpr/releases/latest)
+(install URL: `.../releases/latest/download/elabftw_gdpr-<version>-py3-none-any.whl`).
 
 Classic repo mode also works (Linux/macOS `./gdpr.py`, Windows `gdpr.bat`).
 
