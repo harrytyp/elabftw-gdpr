@@ -9,3 +9,5 @@ examples/sample-report/
 .venv/
 __pycache__/
 *.pyc
+dist/
+*.egg-info/
