@@ -37,7 +37,7 @@ import requests
 # elabapy raises requests.HTTPError, but with timeout patch it also raises Timeout/ConnectionError
 HTTP_ERRORS = (elabapy.Error, requests.RequestException)
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ENV_FILE = PROJECT_ROOT / "elabftw.env"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 PAGE_SIZE = 50  # entries per API page

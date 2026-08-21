@@ -205,7 +205,6 @@ def print_api_limitations() -> None:
     print("Some data requires a separate DB/CLI step, including audit logs, failed")
     print("login attempts and self-scoped metadata such as exports and todolists.")
     print(f"  SQL checklist: {PROJECT_ROOT / 'scripts' / 'gdpr_cli.sql'}")
-    print(f"  API/CLI guide: {PROJECT_ROOT / 'sample' / 'api-vs-cli.md'}")
     print("Review and redact third-party data before sending the disclosure.")
 
 
