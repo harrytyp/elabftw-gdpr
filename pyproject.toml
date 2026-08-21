@@ -1,6 +1,6 @@
 [project]
 name = "elabftw-gdpr"
-version = "1.0.0"
+version = "1.0.1"
 description = "eLabFTW GDPR Art.15 — two 1-click pipelines: API (elab-gdpr) and DB full (elab-gdpr-db)"
 readme = "README.md"
 requires-python = ">=3.10"
