@@ -10,8 +10,9 @@ Two pipelines, one goal: a complete, auditable disclosure.
 Verified against eLabFTW 5.6.12 / MySQL 8.4.
 
 **See what you get before running anything:**
-[**Sample disclosure report**](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)
-(a rendered web page, fully synthetic data).
+[**📄 Sample disclosure letter (PDF)**](SAMPLE-DISCLOSURE.pdf)
+(fully synthetic data; the interactive HTML version is
+[here](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)).
 
 ## Table of Contents
 
@@ -158,10 +159,14 @@ The run log is `output/gdpr.log` (accountability, Art. 5(2)).
 
 See exactly what a disclosure looks like before running anything:
 
-**➡️ [Open the sample disclosure report](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)**
-(rendered web page, fully synthetic "Sample User" data, no real data anywhere)
+**➡️ [📄 Sample disclosure letter (PDF)](SAMPLE-DISCLOSURE.pdf)** - in the repo root,
+fully synthetic "Sample User" data, no real data anywhere. GitHub renders it
+inline in the browser.
 
-It shows the complete package you get for every request:
+**➡️ [Sample disclosure HTML explorer](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)**
+- the interactive version, rendered via GitHub Pages.
+
+The complete package you get for every request:
 
 - **`index.html`** - the disclosure explorer you read in a browser: user
   profile, all their entries (experiments, items, templates), comments,
@@ -233,6 +238,7 @@ elabftw-gdpr/
 ├── docs/
 │   ├── make_sample_report.py  <- build the synthetic sample disclosure
 │   └── sample-report/         <- sample (rendered via GitHub Pages)
+├── SAMPLE-DISCLOSURE.pdf   <- sample letter, inline-rendered on GitHub
 ├── README.md
 └── LICENSE                  <- MIT
 ```
