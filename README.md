@@ -13,7 +13,7 @@ What you get for every request - fully synthetic data, click to open the real fi
 
 <p align="center">
   <a href="sample/SAMPLE-DISCLOSURE.pdf">
-    <img src="sample/sample-report/preview-letter.jpg" alt="Sample disclosure letter (PDF)" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
+    <img src="sample/previews/preview-letter.jpg" alt="Sample disclosure letter (PDF)" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
   </a>
   <br>
   <a href="sample/SAMPLE-DISCLOSURE.pdf">Open the full letter (PDF)</a>
@@ -21,7 +21,7 @@ What you get for every request - fully synthetic data, click to open the real fi
 
 <p align="center">
   <a href="https://harrytyp.github.io/elabftw-gdpr/sample/sample-report/User1/index.html">
-    <img src="sample/sample-report/preview-html.png" alt="Sample disclosure HTML explorer" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
+    <img src="sample/previews/preview-html.png" alt="Sample disclosure HTML explorer" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
   </a>
   <br>
   <a href="https://harrytyp.github.io/elabftw-gdpr/sample/sample-report/User1/index.html">Open the interactive HTML explorer</a>
@@ -133,6 +133,7 @@ elabftw-gdpr/
 │   └── db-inventory.sql     <- complete DB schema reference
 ├── tests/                   <- test data seeding (see README-testing.md)
 ├── sample/                  <- sample report (builder, letter, previews)
+│   └── previews/            <- embedded preview images (used in README)
 ├── pyproject.toml, requirements.txt, LICENSE
 ```
 
