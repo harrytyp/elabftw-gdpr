@@ -146,7 +146,7 @@ def update_env_file(env_file: Path, updates: dict) -> None:
 
 def select_users_interactive(manager) -> list[int]:
     """Show all users from the instance and let the operator pick some."""
-    from gdpr_export import list_users
+    from scripts.gdpr_export import list_users
 
     users = list_users(manager)
     if not users:
@@ -182,7 +182,7 @@ def ensure_credentials(env: dict, env_file: Path) -> dict:
         print(f"[gdpr] Credentials saved to {env_file} (600, gitignored).")
 
     if not env.get("ELAB_USERID"):
-        from gdpr_export import get_manager
+        from scripts.gdpr_export import get_manager
         picked = select_users_interactive(get_manager(env))
         if not picked:
             print(color("No users selected - set ELAB_USERID=75,82 in the env file.", "yellow"))
@@ -204,13 +204,13 @@ def print_api_limitations() -> None:
     print("\nNext steps: the API export is not the complete disclosure by itself.")
     print("Some data requires a separate DB/CLI step, including audit logs, failed")
     print("login attempts and self-scoped metadata such as exports and todolists.")
-    print(f"  SQL checklist: {PROJECT_ROOT / 'gdpr_cli.sql'}")
-    print(f"  API/CLI guide: {PROJECT_ROOT / 'docs' / 'api-vs-cli.md'}")
+    print(f"  SQL checklist: {PROJECT_ROOT / 'scripts' / 'gdpr_cli.sql'}")
+    print(f"  API/CLI guide: {PROJECT_ROOT / 'sample' / 'api-vs-cli.md'}")
     print("Review and redact third-party data before sending the disclosure.")
 
 
 def cmd_export(args) -> int:
-    from gdpr_export import (ENV_FILE as EXPORT_ENV, export_users,
+    from scripts.gdpr_export import (ENV_FILE as EXPORT_ENV, export_users,
                              load_env, parse_user_ids)
 
     env_file = Path(args.env_file) if args.env_file else EXPORT_ENV
@@ -241,7 +241,7 @@ def cmd_export(args) -> int:
 
 
 def cmd_report(args) -> int:
-    from gdpr_report import build_reports
+    from scripts.gdpr_report import build_reports
 
     user_filter = None
     if args.user:
@@ -253,9 +253,9 @@ def cmd_report(args) -> int:
 
 
 def cmd_all(args) -> int:
-    from gdpr_export import (ENV_FILE as EXPORT_ENV, export_users,
+    from scripts.gdpr_export import (ENV_FILE as EXPORT_ENV, export_users,
                              load_env, parse_user_ids)
-    from gdpr_report import build_reports
+    from scripts.gdpr_report import build_reports
 
     env_file = Path(args.env_file) if args.env_file else EXPORT_ENV
     env = ensure_credentials(load_env(args.env_file), env_file)
@@ -297,8 +297,8 @@ def cmd_all(args) -> int:
 
 
 def cmd_users(args) -> int:
-    from gdpr_export import ENV_FILE as EXPORT_ENV
-    from gdpr_export import get_manager, list_users, load_env
+    from scripts.gdpr_export import ENV_FILE as EXPORT_ENV
+    from scripts.gdpr_export import get_manager, list_users, load_env
 
     env = load_env(args.env_file)
     if not env.get("ELAB_URL") or not env.get("ELAB_KEY"):
@@ -356,7 +356,7 @@ def cmd_status(args) -> int:
 
 def cmd_config(args, env_file: Path) -> int:
     if args.action == "show":
-        from gdpr_export import load_env
+        from scripts.gdpr_export import load_env
         env = load_env(str(env_file))
         print(f"env file:      {env_file}")
         print(f"instance URL:  {env.get('ELAB_URL', '(not set)')}")

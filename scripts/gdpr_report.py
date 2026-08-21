@@ -505,7 +505,7 @@ that mention your name/email. Only the matching comment is shown, with other use
         limitation_note = f"""
 <div class="notice notice-error"><b>API-Limitation:</b> This report was created
 from the API only (1-click). The following data is NOT included and must be added
-via <code>gdpr_cli.sql</code> or the DB pipeline
+via <code>scripts/gdpr_cli.sql</code> or the DB pipeline
 (<code>elab-gdpr-db --users {escape(user.get('userid', ''))}</code>):
 audit_logs, authfail, changelog, api_keys, exports, todolist, sig_keys, favtags,
 and archived uploads (state=2, {uploads_archived or 'n/a'} additional files).
@@ -550,7 +550,7 @@ categories (see PDF).</div>
 
 <h2>Entries ({sum(counts.values())})</h2>{''.join(entry_links)}
 
-<h2>DB/CLI only (gdpr_cli.sql)</h2>
+<h2>DB/CLI only (scripts/gdpr_cli.sql)</h2>
 <ul>
 <li>audit_logs, authfail, changelog (structured), api_keys, exports, todolist, unfinished_steps, favtags, pins, sig_keys, edit_mode, lockout_devices</li>
 </ul>

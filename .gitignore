@@ -1,7 +1,7 @@
 # Data & secrets - never commit or share
 elabftw.env
 output/
-sample/
+sample/sample-report/
 *.zip
 
 # Python

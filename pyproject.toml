@@ -27,8 +27,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 py-modules = [
     "gdpr",
-    "gdpr_export",
-    "gdpr_report",
     "gdpr_db_full",
-    "gdpr_detect",
 ]
+packages = ["scripts"]

@@ -5,7 +5,7 @@ through the eLabFTW REST API v2 using a sysadmin API key, via the official
 elabapy wrapper. Output: one folder per user under ``output/``
 (e.g. ``output/User75/``), see README.
 
-NOT covered by the API (needs DB/CLI access - see ``gdpr_cli.sql``):
+NOT covered by the API (needs DB/CLI access - see ``scripts/gdpr_cli.sql``):
   audit_logs, authfail, changelog (structured), other users' api_keys,
   exports, todolist, unfinished_steps, favtags, pins, sig_keys,
   exclusive_edit_mode, lockout_devices
@@ -337,7 +337,7 @@ def export_one_user(manager: elabapy.Manager, target: int, out_dir: Path,
         lines.append(f"- {et}: {n} entries, {comments} comments, {revisions} revisions, {uploads} uploads")
     lines.append(f"- Upload files downloaded: {files_downloaded}")
     lines.append("")
-    lines.append("## DB/CLI only (see gdpr_cli.sql)")
+    lines.append("## DB/CLI only (see scripts/gdpr_cli.sql)")
     lines.append("- audit_logs, authfail, changelog (structured), api_keys, exports,")
     lines.append("  todolist, unfinished_steps, favtags, pins, sig_keys, edit_mode, lockout_devices")
     (out_dir / "index.md").write_text("\n".join(lines))

@@ -13,7 +13,7 @@ What you get for every request - fully synthetic data, click to open the real fi
 
 <p align="center">
   <a href="SAMPLE-DISCLOSURE.pdf">
-    <img src="docs/sample-report/preview-letter.jpg" alt="Sample disclosure letter (PDF)" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
+    <img src="sample/sample-report/preview-letter.jpg" alt="Sample disclosure letter (PDF)" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
   </a>
   <br>
   <a href="SAMPLE-DISCLOSURE.pdf">Open the full letter (PDF)</a>
@@ -21,7 +21,7 @@ What you get for every request - fully synthetic data, click to open the real fi
 
 <p align="center">
   <a href="https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html">
-    <img src="docs/sample-report/preview-html.png" alt="Sample disclosure HTML explorer" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
+    <img src="sample/sample-report/preview-html.png" alt="Sample disclosure HTML explorer" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
   </a>
   <br>
   <a href="https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html">Open the interactive HTML explorer</a>
@@ -121,15 +121,18 @@ name; if several candidates exist it asks (recursive). Override with
 
 ```
 elabftw-gdpr/
-├── gdpr.py / gdpr.bat       <- CLI (API pipeline; installed as `elab-gdpr`)
-├── gdpr_export.py           <- API export module
-├── gdpr_db_full.py          <- DB full export (installed as `elab-gdpr-db`)
+├── gdpr.py                  <- CLI, API pipeline (installed as `elab-gdpr`)
+├── gdpr_db_full.py          <- CLI, DB pipeline (installed as `elab-gdpr-db`)
 ├── gdpr_db_full.sh          <- 1-click server wrapper (DB pipeline)
-├── gdpr_report.py           <- report module (HTML + PDF + ZIP)
-├── gdpr_detect.py           <- autodetect MySQL container / compose / DB
-├── gdpr_full.sql, gdpr_cli.sql  <- DB reference queries
+├── gdpr.bat                 <- Windows wrapper (API pipeline)
+├── scripts/                 <- internal modules (not run directly)
+│   ├── gdpr_export.py       <- API export
+│   ├── gdpr_report.py       <- report (HTML + PDF + ZIP)
+│   ├── gdpr_detect.py       <- autodetect MySQL container / compose / DB
+│   ├── gdpr_cli.sql         <- DB queries for API gaps
+│   └── db-inventory.sql     <- complete DB schema reference
 ├── tests/                   <- test data seeding (see README-testing.md)
-├── docs/                    <- sample report builder + previews
+├── sample/                  <- sample report builder + previews
 ├── SAMPLE-DISCLOSURE.pdf    <- sample letter
 ├── pyproject.toml, requirements.txt, LICENSE
 ```

@@ -700,7 +700,7 @@ def find_elab_container() -> str | None:
 
 def detect_and_connect(env: dict, args) -> dict:
     """Resolve DB target (explicit > env > autodetect recursive) and return conn."""
-    from gdpr_detect import resolve_db_target
+    from scripts.gdpr_detect import resolve_db_target
     target = resolve_db_target(env, args)
     if not target.get("container") and not target.get("db_password"):
         raise SystemExit("No DB found. Pass --db-container / --db-name / "
