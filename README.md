@@ -2,12 +2,16 @@
 
 Answer GDPR data subject access requests (Art. 15) for [eLabFTW](https://www.elabftw.net/) with one command.
 
-Two pipelines, one goal — a complete, auditable disclosure:
+Two pipelines, one goal: a complete, auditable disclosure.
 
-- **DB pipeline** (`elab-gdpr-db`) — no API key needed. Reads everything directly from MySQL (including archived uploads, the audit trail, failed logins) and copies upload files from the docker volume. **Use this for the actual disclosure.**
-- **API pipeline** (`elab-gdpr`) — needs a sysadmin API key. Fast, good for a quick check, but not complete on its own (see [What the export covers](#what-the-export-covers)).
+- **DB pipeline** (`elab-gdpr-db`): no API key needed. Reads everything directly from MySQL (including archived uploads, the audit trail, failed logins) and copies upload files from the docker volume. **Use this for the actual disclosure.**
+- **API pipeline** (`elab-gdpr`): needs a sysadmin API key. Fast, good for a quick check, but not complete on its own (see [What the export covers](#what-the-export-covers)).
 
 Verified against eLabFTW 5.6.12 / MySQL 8.4.
+
+**See what you get before running anything:**
+[**Sample disclosure report**](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)
+(a rendered web page, fully synthetic data).
 
 ## Table of Contents
 
@@ -52,7 +56,7 @@ Classic repo mode also works (Linux/macOS `./gdpr.py`, Windows `gdpr.bat`).
 
 ## Usage
 
-### Option A — API pipeline (needs API key)
+### Option A: API pipeline (needs API key)
 
 ```bash
 elab-gdpr users                     # find the user ID
@@ -71,7 +75,7 @@ Result in `output/User42/`: `index.html` (explorer),
 listing what is missing (audit trail, archived uploads, ...). For a complete
 disclosure use Option B.
 
-### Option B — DB pipeline (no API key, on the server)
+### Option B: DB pipeline (no API key, on the server)
 
 ```bash
 # One-time setup on the eLabFTW server:
@@ -83,12 +87,12 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 # or: ./gdpr_db_full.sh 42
 ```
 
-That's it — no API key, no env file. It auto-detects the MySQL container, the
+That's it: no API key, no env file. It auto-detects the MySQL container, the
 compose `.env` and the database name. If several candidates exist, it asks
 (recursive). Override with `--db-container <name>`, `--db-env-file <path>`,
 `--db-name <name>`.
 
-Result in `output/User42/`: **everything** — all uploads (active + archived,
+Result in `output/User42/`: **everything**, including all uploads (active + archived,
 state=2), the audit trail, failed logins, changelog, API keys, export
 history, todolist, sig keys, favorites, bookings. The HTML report has a "DB
 appendix" section, `db_appendix.json` is in the ZIP.
@@ -100,7 +104,7 @@ appendix" section, `db_appendix.json` is in the ZIP.
    (co-authors, reviewers). Manually black them out.
 2. **Never hand out:** password hashes, MFA secrets, reset tokens, API key
    hashes, signing private keys. These are only listed as categories in the
-   PDF — by design.
+   PDF, by design.
 3. **Deadline:** 1 month (Art. 12(3) GDPR), +2 months for complex cases.
 
 ## What the export covers
@@ -109,7 +113,7 @@ Per user in `output/User<id>/`:
 
 - account data, teams/roles, ROR affiliations, request actions, notifications
 - group memberships, procurement requests, bookings
-- all entities owned by the user (experiments, items, templates, item types —
+- all entities owned by the user (experiments, items, templates, item types,
   incl. archived and soft-deleted) with comments, revisions, steps, tags,
   request actions
 - uploads: metadata (always), file contents with `--with-files`
@@ -119,8 +123,8 @@ Per user in `output/User<id>/`:
   assignments, compounds + links, template/type steps, signatures (who
   signed/timestamped), request actions, procurement, notifications, entity
   links, archived uploads (state=2), and **third-party comments on the
-  user's entries** (data about the person from other people's content —
-  redact before sending!) — everything the API cannot see
+  user's entries** (data about the person from other people's content;
+  redact before sending!). Everything the API cannot see
 
 The run log is `output/gdpr.log` (accountability, Art. 5(2)).
 
@@ -136,7 +140,7 @@ The run log is `output/gdpr.log` (accountability, Art. 5(2)).
 | `gdpr.py config show/set` | show/update credentials (never shows the key) |
 | `gdpr_db_full.py` / `elab-gdpr-db` | DB full export (no API key, same flags) |
 | `gdpr_db_full.py users` / `elab-gdpr-db users` | list users from the database |
-| `gdpr_db_full.sh 42` | 1-click shell wrapper (server) — shorthand for `--users 42` |
+| `gdpr_db_full.sh 42` | 1-click shell wrapper (server), shorthand for `--users 42` |
 
 ### Shared options (both pipelines)
 
@@ -152,20 +156,27 @@ The run log is `output/gdpr.log` (accountability, Art. 5(2)).
 
 ## Sample report
 
-Want to see what a disclosure looks like before running anything?
+See exactly what a disclosure looks like before running anything:
 
-**Browse it online:** [`examples/sample-report/User1/index.html`](examples/sample-report/User1/index.html)
-— a fully synthetic disclosure (generic "Sample User" data, one record per
-category, **no real data anywhere**). Shows the complete package: HTML
-explorer with all appendix sections (audit trail, failed logins, changelog,
-API keys, exports, todolist, storage, compounds, notifications, entity
-links, name mentions, ...), the PDF disclosure letter and the ZIP archive.
+**➡️ [Open the sample disclosure report](https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html)**
+(rendered web page, fully synthetic "Sample User" data, no real data anywhere)
 
-Rebuild it locally with:
+It shows the complete package you get for every request:
+
+- **`index.html`** - the disclosure explorer you read in a browser: user
+  profile, all their entries (experiments, items, templates), comments,
+  steps, uploads, and every appendix section (audit trail, failed logins,
+  changelog, API keys, exports, storage, compounds, notifications, entity
+  links, third-party comments, name mentions, ...)
+- **`Disclosure_User<id>.pdf`** - the official Art. 15 disclosure letter
+  (one page, ready to send after redaction)
+- **`gdpr_disclosure_User<id>.zip`** - everything as a package
+
+Rebuild the sample locally:
 
 ```bash
-python3 examples/make_sample_report.py
-# then open examples/sample-report/User1/index.html
+python3 docs/make_sample_report.py
+# then open docs/sample-report/User1/index.html
 ```
 
 ## Security
@@ -175,16 +186,16 @@ python3 examples/make_sample_report.py
 - **Never commit or share:** `elabftw.env`, `output/` (contains personal
   data!), any export package.
 - **Never hand out (Art. 32):** password hashes, MFA secrets, tokens, API
-  key hashes, signing private keys — see [Before sending](#before-sending-the-disclosure-mandatory).
+  key hashes, signing private keys; see [Before sending](#before-sending-the-disclosure-mandatory).
 - The DB pipeline reads the MySQL password from the compose `.env` on the
-  server — it never stores or logs it.
+  server and never stores or logs it.
 
 ## Verifying every data category
 
 `tests/seed_test_data.py` creates **real** eLabFTW records via the instance's
 own API (dedicated test user): experiments, items, templates, item types,
 comments, steps, tags, uploads (real file), status/category, todolist, team
-groups — so a dry-run or full export shows these categories with real data,
+groups, so a dry-run or full export shows these categories with real data,
 nothing faked:
 
 ```bash
@@ -196,7 +207,7 @@ python3 gdpr_db_full.py --users <test-user-id> --dry-run
 
 Categories with no working API route in eLabFTW 5.6 (links, containers,
 request actions, favorites/pins, notifications, authfail, bookings) are
-**documented, not faked** — see `tests/README-testing.md`. The script is
+**documented, not faked**; see `tests/README-testing.md`. The script is
 idempotent (cleans previous `GDPR *` entities first) and only touches the
 test user's data.
 
@@ -219,9 +230,9 @@ elabftw-gdpr/
 ├── tests/
 │   ├── seed_test_data.py    <- create real test data via the API (no fakes)
 │   └── README-testing.md    <- what is seeded / what needs real usage
-├── examples/
+├── docs/
 │   ├── make_sample_report.py  <- build the synthetic sample disclosure
-│   └── sample-report/         <- committed sample (browse on GitHub)
+│   └── sample-report/         <- sample (rendered via GitHub Pages)
 ├── README.md
 └── LICENSE                  <- MIT
 ```
@@ -230,14 +241,14 @@ elabftw-gdpr/
 
 ## Maintainers
 
-- [@harrytyp](https://github.com/harrytyp) — maintainer
+- [@harrytyp](https://github.com/harrytyp), maintainer
 
 ## Contributing
 
 Questions, bugs and ideas: [GitHub issues](https://github.com/harrytyp/elabftw-gdpr/issues).
 
 Pull requests are welcome. For anything touching the export format or the
-GDPR text, please open an issue first to discuss — this tool produces legal
+GDPR text, please open an issue first to discuss. This tool produces legal
 documents and changes to the disclosure content should be deliberate.
 
 ## License
