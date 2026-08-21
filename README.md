@@ -13,15 +13,19 @@ Verified against eLabFTW 5.6.12 / MySQL 8.4.
 
 ## 1. Install
 
-```bash
-# Run without installing (uv):
-uvx elabftw-gdpr --users 2          # API pipeline
-uvx elabftw-gdpr-db --users 2       # DB pipeline (no API key)
+**Release:** [github.com/harrytyp/elabftw-gdpr/releases](https://github.com/harrytyp/elabftw-gdpr/releases) (v1.0.0)
 
-# Or install once:
-pip install elabftw-gdpr
-elab-gdpr --users 2
-elab-gdpr-db --users 2 --with-files
+```bash
+# Install from the GitHub release (any OS, once):
+pip install https://github.com/harrytyp/elabftw-gdpr/releases/download/v1.0.0/elabftw_gdpr-1.0.0-py3-none-any.whl
+elab-gdpr --users 2          # API pipeline
+elab-gdpr-db --users 2 --with-files   # DB pipeline (no API key)
+
+# Or install straight from the repo (needs git + a Python build backend):
+pip install git+https://github.com/harrytyp/elabftw-gdpr@v1.0.0
+
+# Or run without installing (uv, from the repo):
+uvx --from git+https://github.com/harrytyp/elabftw-gdpr@v1.0.0 elab-gdpr --users 2
 ```
 
 Classic repo mode also works (Linux/macOS `./gdpr.py`, Windows `gdpr.bat`).
@@ -63,19 +67,20 @@ Result in `output/User42/`: **everything** — all uploads (active + archived, s
 ### Sample report
 
 Want to see what a disclosure looks like before running anything?
-[`examples/make_sample_report.py`](examples/make_sample_report.py) builds a
-small, fully synthetic disclosure (generic "Sample User" data, one record per
-category — no real data anywhere):
+
+**Browse it online:** [`examples/sample-report/User1/index.html`](examples/sample-report/User1/index.html)
+— a fully synthetic disclosure (generic "Sample User" data, one record per
+category, **no real data anywhere**). Shows the complete package: HTML
+explorer with all appendix sections (audit trail, failed logins, changelog,
+API keys, exports, todolist, storage, compounds, notifications, entity
+links, name mentions, ...), the PDF disclosure letter and the ZIP archive.
+
+Rebuild it locally with:
 
 ```bash
 python3 examples/make_sample_report.py
 # then open examples/sample-report/User1/index.html
 ```
-
-The generated `examples/sample-report/` shows the complete package: HTML
-explorer with all appendix sections (audit trail, failed logins, changelog,
-API keys, exports, todolist, storage, compounds, notifications, entity
-links, name mentions, ...), PDF disclosure letter and ZIP archive.
 
 ---
 
@@ -175,6 +180,9 @@ elabftw-gdpr/
 ├── tests/
 │   ├── seed_test_data.py    <- create real test data via the API (no fakes)
 │   └── README-testing.md    <- what is seeded / what needs real usage
+├── examples/
+│   ├── make_sample_report.py  <- build the synthetic sample disclosure
+│   └── sample-report/         <- committed sample (browse on GitHub)
 ├── README.md
 └── LICENSE                  <- MIT
 ```
