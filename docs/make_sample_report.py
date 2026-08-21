@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Build a small synthetic sample report (examples/sample-report/) so users
+"""Build a small synthetic sample report (docs/sample-report/) so users
 can see what a GDPR disclosure looks like - WITHOUT any real data.
 
 The sample uses generic entries ("Sample Experiment", "Sample Item", ...)
 and one record per appendix category, matching the DB pipeline output
 layout so gdpr_report.py can render it. Run:
 
-    python3 examples/make_sample_report.py
-    # then open examples/sample-report/index.html
+    python3 docs/make_sample_report.py
+    # then open docs/sample-report/User1/index.html
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ sys.path.insert(0, str(REPO))
 
 import gdpr_report  # noqa: E402
 
-OUT = REPO / "examples" / "sample-report"
+OUT = REPO / "docs" / "sample-report"
 
 
 def w(path: Path, data) -> None:
@@ -173,7 +173,7 @@ def main() -> int:
         return 1
 
     print(f"Sample report written to {OUT}/")
-    print("Open examples/sample-report/index.html in a browser.")
+    print("Open docs/sample-report/User1/index.html in a browser.")
     return 0
 
 

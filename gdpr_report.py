@@ -570,6 +570,7 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
     entities = manifest.get("entities", {})
     counts = {et: len(ids) for et, ids in entities.items()}
     is_db = manifest.get("source") == "db"
+    db_appendix = (read_json(out_dir / "db_appendix.json") or {}) if is_db else {}
     uploads_total = manifest.get("uploads_total",
                                  manifest.get("upload_files_downloaded", 0))
     uploads_archived = manifest.get("uploads_archived")
@@ -613,10 +614,10 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
             ("Templates", counts["experiments_templates"]),
             ("Item types", counts["items_types"]),
             ("Upload files", uploads_total),
-            ("Notifications", len(manifest.get("notifications") or [])),
-            ("Bookings", len(manifest.get("bookings") or [])),
-            ("Groups", len(manifest.get("groups") or [])),
-            ("Procurement requests", len(manifest.get("procurement") or [])),
+            ("Notifications", len(db_appendix.get("notifications") or manifest.get("notifications") or [])),
+            ("Bookings", len(db_appendix.get("bookings") or manifest.get("bookings") or [])),
+            ("Groups", len(db_appendix.get("team_groups") or manifest.get("groups") or [])),
+            ("Procurement requests", len(db_appendix.get("procurement") or manifest.get("procurement") or [])),
         ]], colWidths=[90 * mm, 60 * mm], style=TableStyle([
             ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
