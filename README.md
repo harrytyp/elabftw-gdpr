@@ -20,11 +20,11 @@ What you get for every request - fully synthetic data, click to open the real fi
 </p>
 
 <p align="center">
-  <a href="https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html">
+  <a href="https://harrytyp.github.io/elabftw-gdpr/sample/sample-report/User1/index.html">
     <img src="sample/sample-report/preview-html.png" alt="Sample disclosure HTML explorer" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
   </a>
   <br>
-  <a href="https://harrytyp.github.io/elabftw-gdpr/sample-report/User1/index.html">Open the interactive HTML explorer</a>
+  <a href="https://harrytyp.github.io/elabftw-gdpr/sample/sample-report/User1/index.html">Open the interactive HTML explorer</a>
 </p>
 
 Every request produces three files in `output/User<id>/`:
