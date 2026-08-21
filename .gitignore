@@ -2,7 +2,6 @@
 elabftw.env
 output/
 sample/
-examples/sample-report/
 *.zip
 
 # Python
