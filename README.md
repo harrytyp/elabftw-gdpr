@@ -12,11 +12,11 @@ Two pipelines, one goal: a complete, auditable disclosure.
 What you get for every request - fully synthetic data, click to open the real files:
 
 <p align="center">
-  <a href="SAMPLE-DISCLOSURE.pdf">
+  <a href="sample/SAMPLE-DISCLOSURE.pdf">
     <img src="sample/sample-report/preview-letter.jpg" alt="Sample disclosure letter (PDF)" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
   </a>
   <br>
-  <a href="SAMPLE-DISCLOSURE.pdf">Open the full letter (PDF)</a>
+  <a href="sample/SAMPLE-DISCLOSURE.pdf">Open the full letter (PDF)</a>
 </p>
 
 <p align="center">
@@ -132,8 +132,7 @@ elabftw-gdpr/
 │   ├── gdpr_cli.sql         <- DB queries for API gaps
 │   └── db-inventory.sql     <- complete DB schema reference
 ├── tests/                   <- test data seeding (see README-testing.md)
-├── sample/                  <- sample report builder + previews
-├── SAMPLE-DISCLOSURE.pdf    <- sample letter
+├── sample/                  <- sample report (builder, letter, previews)
 ├── pyproject.toml, requirements.txt, LICENSE
 ```
 
