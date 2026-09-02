@@ -634,10 +634,10 @@ def main() -> int:
     parser.add_argument("--json", action="store_true",
                         help="print the summary as JSON on stdout")
     parser.add_argument("--lang", default=None,
-                        help="report language: en, de or 'auto' (reads the "
-                             "user's eLabFTW language). Builds the report "
-                             "package (HTML+PDF+ZIP) after the export. "
-                             "Default: English.")
+                        help="report language: en (default), de or 'auto' "
+                             "(reads the user's eLabFTW language). The report "
+                             "package (HTML+PDF+ZIP) is always built after the "
+                             "export.")
     parser.add_argument("--db-container", default=None,
                         help="MySQL/MariaDB container name (autodetect if omitted)")
     parser.add_argument("--db-name", default=None,
@@ -674,8 +674,16 @@ def main() -> int:
 
     with_files = bool(args.with_files) and not bool(args.no_files)
     with_archived = not args.no_archived
-    results = export_users(conn, users, Path(args.out_dir), args.dry_run,
-                           with_files, with_archived, elab_container)
+    import contextlib
+    if args.json:
+        # machine-readable mode: keep stdout pure JSON - all human output
+        # (export progress, report progress) goes to stderr instead
+        with contextlib.redirect_stdout(sys.stderr):
+            results = export_users(conn, users, Path(args.out_dir), args.dry_run,
+                                   with_files, with_archived, elab_container)
+    else:
+        results = export_users(conn, users, Path(args.out_dir), args.dry_run,
+                               with_files, with_archived, elab_container)
     ok = sum(1 for v in results.values() if v is not None)
     if args.json:
         print(json.dumps({"users": results, "ok": ok, "total": len(results)},
@@ -688,15 +696,20 @@ def main() -> int:
             print("(includes archived uploads - use --no-archived to skip state=2)")
 
     # --- report package (HTML + PDF + ZIP) after a successful export -------
-    # 1-click: gdpr_db_full.sh --users 42 --lang de does export AND report.
+    # 1-click: gdpr_db_full.sh --users 42 [--lang de] exports AND builds the
+    # report. Without --lang the report is English (default).
     if args.dry_run:
         return 0 if ok == len(results) else 1
     if ok == len(results) and ok > 0:
         from scripts.gdpr_report import build_reports
-        # report language defaults to English unless --lang is given
         lang_arg = args.lang or "en"
-        print(f"\n[elab-gdpr-db] Building report package (lang={lang_arg})...")
-        report_results = build_reports(Path(args.out_dir), users, lang_arg)
+        if args.json:
+            with contextlib.redirect_stdout(sys.stderr):
+                print(f"\n[elab-gdpr-db] Building report package (lang={lang_arg})...")
+                report_results = build_reports(Path(args.out_dir), users, lang_arg)
+        else:
+            print(f"\n[elab-gdpr-db] Building report package (lang={lang_arg})...")
+            report_results = build_reports(Path(args.out_dir), users, lang_arg)
         built = sum(1 for v in report_results.values() if v == 0)
         if built != len(users):
             print(f"WARNING: only {built}/{len(users)} reports built - see above")

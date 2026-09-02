@@ -134,15 +134,16 @@ git clone https://github.com/harrytyp/elabftw-gdpr && cd elabftw-gdpr
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 # Per request (1 click - export + report package in one):
-./gdpr_db_full.sh --users 42 --with-files
-./gdpr_db_full.sh --users 42 --with-files --lang de    # German report
-./gdpr_db_full.sh --users 42 --lang auto               # user's eLabFTW language
+./gdpr_db_full.sh --users 42 --with-files                 # English report
+./gdpr_db_full.sh --users 42 --with-files --lang de       # German report
+./gdpr_db_full.sh --users 42 --lang auto                  # user's eLabFTW language
 ```
 
 The shell wrapper exports AND builds the report package (HTML explorer +
 PDF letter + ZIP) in one go. `--lang` selects the report language
 (`en` default, `de`, or `auto` for the user's eLabFTW language); without
-`--lang` the report is English.
+`--lang` the report is English. With `--json`, the export summary goes to
+stdout and the report progress to stderr, so scripted JSON stays clean.
 
 It auto-detects the MySQL container, the compose `.env` and the database
 name; if several candidates exist it asks (recursive). Override with
