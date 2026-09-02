@@ -1,0 +1,23 @@
+[
+  {
+    "id": 22,
+    "item_id": 33,
+    "userid": 3,
+    "created_at": "2026-08-20 15:55:15",
+    "comment": "GDPR seed comment 1"
+  },
+  {
+    "id": 23,
+    "item_id": 33,
+    "userid": 3,
+    "created_at": "2026-08-20 15:55:15",
+    "comment": "GDPR seed comment 2"
+  },
+  {
+    "id": 24,
+    "item_id": 33,
+    "userid": 3,
+    "created_at": "2026-08-20 16:23:35",
+    "comment": "Signed by GDPR Testuser (Approval)"
+  }
+]

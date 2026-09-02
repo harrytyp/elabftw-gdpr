@@ -1,0 +1,12 @@
+{
+  "userid": 3,
+  "email": "gdpr-test@example.org",
+  "firstname": "GDPR",
+  "lastname": "Testuser",
+  "created_at": "2026-08-20 15:30:49",
+  "last_login": "2026-08-20 17:00:50",
+  "validated": "1",
+  "is_sysadmin": "0",
+  "lang": "en_GB",
+  "orcid": "NULL"
+}

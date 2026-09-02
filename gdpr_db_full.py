@@ -633,6 +633,11 @@ def main() -> int:
                         help="only active uploads (state=1); default: all states")
     parser.add_argument("--json", action="store_true",
                         help="print the summary as JSON on stdout")
+    parser.add_argument("--lang", default=None,
+                        help="report language: en, de or 'auto' (reads the "
+                             "user's eLabFTW language). Builds the report "
+                             "package (HTML+PDF+ZIP) after the export. "
+                             "Default: English.")
     parser.add_argument("--db-container", default=None,
                         help="MySQL/MariaDB container name (autodetect if omitted)")
     parser.add_argument("--db-name", default=None,
@@ -681,6 +686,20 @@ def main() -> int:
             print("(metadata only - use --with-files to also copy upload binaries)")
         if with_archived:
             print("(includes archived uploads - use --no-archived to skip state=2)")
+
+    # --- report package (HTML + PDF + ZIP) after a successful export -------
+    # 1-click: gdpr_db_full.sh --users 42 --lang de does export AND report.
+    if args.dry_run:
+        return 0 if ok == len(results) else 1
+    if ok == len(results) and ok > 0:
+        from scripts.gdpr_report import build_reports
+        # report language defaults to English unless --lang is given
+        lang_arg = args.lang or "en"
+        print(f"\n[elab-gdpr-db] Building report package (lang={lang_arg})...")
+        report_results = build_reports(Path(args.out_dir), users, lang_arg)
+        built = sum(1 for v in report_results.values() if v == 0)
+        if built != len(users):
+            print(f"WARNING: only {built}/{len(users)} reports built - see above")
     return 0 if ok == len(results) else 1
 
 

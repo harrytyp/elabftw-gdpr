@@ -1,0 +1,16 @@
+[
+  {
+    "id": 26,
+    "item_id": 60,
+    "userid": 3,
+    "created_at": "2026-09-02 15:07:55",
+    "comment": "GDPR seed comment 1"
+  },
+  {
+    "id": 27,
+    "item_id": 60,
+    "userid": 3,
+    "created_at": "2026-09-02 15:07:55",
+    "comment": "GDPR seed comment 2"
+  }
+]

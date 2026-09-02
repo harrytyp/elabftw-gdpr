@@ -245,7 +245,7 @@ def cmd_report(args) -> int:
     user_filter = None
     if args.user:
         user_filter = [int(x) for x in args.user.replace(" ", "").split(",") if x]
-    results = build_reports(Path(args.out_dir), user_filter)
+    results = build_reports(Path(args.out_dir), user_filter, args.lang)
     if not results:
         return 1
     return 0 if all(v == 0 for v in results.values()) else 1
@@ -280,7 +280,7 @@ def cmd_all(args) -> int:
         return 0
 
     print(f"\n[gdpr] Building report package...")
-    report_results = build_reports(base_dir, users if args.users else None)
+    report_results = build_reports(base_dir, users if args.users else None, args.lang)
     if not report_results:
         return 1
 
@@ -397,6 +397,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="print summary as JSON on stdout")
     common.add_argument("--out-dir", default=str(OUTPUT_DIR),
                         help="base directory for per-user export folders")
+    common.add_argument("--lang", default="en",
+                        help="report language: en, de, fr, ... or 'auto' to "
+                             "read the user's eLabFTW language (default: en)")
 
     parser = argparse.ArgumentParser(
         prog="gdpr",

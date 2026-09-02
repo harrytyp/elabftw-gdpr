@@ -9,14 +9,18 @@ Two pipelines, one goal: a complete, auditable disclosure.
 
 ## Sample report
 
-What you get for every request - fully synthetic data, click to open the real files:
+What you get for every request - generated from the dedicated GDPR test
+user (`gdpr-test@example.org`, seeded via `tests/seed_test_data.py`), in
+English and German. Click to open the real files:
 
 <p align="center">
   <a href="sample/SAMPLE-DISCLOSURE.pdf">
     <img src="sample/previews/preview-letter.jpg" alt="Sample disclosure letter (PDF)" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
   </a>
   <br>
-  <a href="sample/SAMPLE-DISCLOSURE.pdf">Open the full letter (PDF)</a>
+  <a href="sample/SAMPLE-DISCLOSURE.pdf">Open the full letter (English, PDF)</a>
+  ·
+  <a href="sample/SAMPLE-DISCLOSURE-DE.pdf">Zum Brief auf Deutsch (PDF)</a>
 </p>
 
 <p align="center">
@@ -24,8 +28,14 @@ What you get for every request - fully synthetic data, click to open the real fi
     <img src="sample/previews/preview-html.png" alt="Sample disclosure HTML explorer" width="600" style="border: 1px solid #ddd; border-radius: 4px;">
   </a>
   <br>
-  <a href="https://harrytyp.github.io/elabftw-gdpr/sample/sample-report/User1/index.html">Open the interactive HTML explorer</a>
+  <a href="https://harrytyp.github.io/elabftw-gdpr/sample/sample-report/User1/index.html">Open the interactive HTML explorer (English)</a>
+  ·
+  <a href="https://harrytyp.github.io/elabftw-gdpr/sample/sample-report/User1-de/index.html">HTML-Explorer auf Deutsch</a>
 </p>
+
+The sample letters contain interactive form fields (controller identity,
+Art. 4(7) GDPR / Art. 4 Nr. 7 DSGVO) that the operator fills in while
+reviewing the letter before sending.
 
 Every request produces three files in `output/User<id>/`:
 
@@ -55,7 +65,53 @@ clone the repo there and run `./gdpr_db_full.sh` (see [Usage](#usage)).
 Both pipelines share the same options. `--users 75,82` selects users
 (comma-separated IDs; interactive pick if omitted), `--with-files` downloads
 file contents (default: metadata only), `--dry-run` counts without writing,
-`--out-dir <path>` sets the output location.
+`--out-dir <path>` sets the output location, `--lang <code>` selects the
+report language (default: English).
+
+### Report language (i18n)
+
+The HTML explorer and the PDF disclosure letter are fully translated.
+Supported languages: `en` (default) and `de`. The report UI (headings,
+tables, appendix sections, the PDF letter with all GDPR article references)
+is translated; the underlying data (entity titles, comments, audit-log
+bodies) is user content and is deliberately never translated.
+
+```bash
+# English (default) - same as before
+elab-gdpr --users 42
+
+# German disclosure letter + HTML explorer
+elab-gdpr --users 42 --lang de
+elab-gdpr report --users 42 --lang de          # rebuild report from an export
+
+# 'auto' reads the data subject's eLabFTW UI language (users.lang) and maps
+# it to the closest supported report language (e.g. de_DE -> de, en_GB -> en);
+# unknown/missing falls back to English
+elab-gdpr --users 42 --lang auto
+```
+
+The DB pipeline does the same in one command (export + report):
+
+```bash
+# DB export + German report package in one go:
+./gdpr_db_full.sh --users 42 --lang de
+
+# or export first, then build the report from output/ at any time:
+elab-gdpr-db --users 42
+elab-gdpr report --out-dir output --users 42 --lang de
+python3 scripts/gdpr_report.py --out-dir output --user 42 --lang de
+```
+
+The DB pipeline writes the user's `lang` into the export manifest, so
+`--lang auto` works there too. Dates are formatted per language
+(`de` → `DD.MM.YYYY`); the PDF letter keeps using its built-in font for
+languages without special characters, and falls back to a TTF font
+(DejaVu/Liberation) for scripts outside cp1252 (e.g. Polish, Czech) when one
+is installed.
+
+The generated PDF letters contain interactive form fields for the controller
+identity (Art. 4(7) GDPR / Art. 4 Nr. 7 DSGVO). Fill them in while reviewing
+the letter before sending - the operator data is not stored in eLabFTW.
 
 ### API pipeline - quick check, needs a sysadmin API key
 
@@ -63,6 +119,7 @@ file contents (default: metadata only), `--dry-run` counts without writing,
 elab-gdpr users                     # find the user ID
 elab-gdpr --users 42                # export + report (1 click)
 elab-gdpr --users 42 --with-files   # also download file contents
+elab-gdpr --users 42 --lang de      # German export + report
 ```
 
 First run asks for the instance URL and the API key once (stored in
@@ -76,9 +133,16 @@ and `LIMITATIONS.md` listing what is missing.
 git clone https://github.com/harrytyp/elabftw-gdpr && cd elabftw-gdpr
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
-# Per request (1 click):
+# Per request (1 click - export + report package in one):
 ./gdpr_db_full.sh --users 42 --with-files
+./gdpr_db_full.sh --users 42 --with-files --lang de    # German report
+./gdpr_db_full.sh --users 42 --lang auto               # user's eLabFTW language
 ```
+
+The shell wrapper exports AND builds the report package (HTML explorer +
+PDF letter + ZIP) in one go. `--lang` selects the report language
+(`en` default, `de`, or `auto` for the user's eLabFTW language); without
+`--lang` the report is English.
 
 It auto-detects the MySQL container, the compose `.env` and the database
 name; if several candidates exist it asks (recursive). Override with

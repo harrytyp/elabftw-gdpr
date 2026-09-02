@@ -105,10 +105,30 @@ def main() -> int:
     user = Api(BASE, USER_KEY)
 
     # --- who am I (the test user) ---
+    # /users/me is not available on all eLabFTW versions (5.6 vs 6.x);
+    # fall back to /users/{id} via the admin key or parse from the key's user.
+    me = None
     code, out, _ = user.get("/users/me")
-    me = json.loads(out)
+    if code == 200:
+        try:
+            me = json.loads(out)
+        except Exception:
+            me = None
+    if not me and admin:
+        # find our userid via the admin key listing users
+        code2, out2, _ = admin.get("/users?limit=500")
+        try:
+            for u in json.loads(out2):
+                if u.get("email") == (args.user_email or USER_EMAIL):
+                    me = u
+                    break
+        except Exception:
+            pass
+    if not me:
+        print("Could not determine the test user id - is ELAB_USER_KEY valid?")
+        return 2
     uid = me["userid"]
-    print(f"acting as user {uid}: {me['email']} ({me['fullname']})")
+    print(f"acting as user {uid}: {me['email']} ({me.get('fullname', me.get('firstname', ''))})")
 
     # --- clean previous seed (idempotent: remove GDPR * entities) ---
     for et in ("experiments", "items", "experiments_templates", "items_types"):

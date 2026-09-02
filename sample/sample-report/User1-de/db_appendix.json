@@ -1,0 +1,541 @@
+{
+  "audit_logs": [
+    [
+      "2026-08-20 15:30:49",
+      "40",
+      "1",
+      "3",
+      "User was associated with team 2 and permission level User"
+    ],
+    [
+      "2026-08-20 15:30:49",
+      "20",
+      "1",
+      "3",
+      "New account created"
+    ],
+    [
+      "2026-08-20 15:31:50",
+      "30",
+      "1",
+      "3",
+      "User attribute password was changed from the old password to the new password"
+    ],
+    [
+      "2026-08-20 15:34:09",
+      "30",
+      "1",
+      "3",
+      "User attribute password was changed from the old password to the new password"
+    ],
+    [
+      "2026-08-20 15:35:34",
+      "30",
+      "1",
+      "3",
+      "User attribute password was changed from the old password to the new password"
+    ],
+    [
+      "2026-08-20 15:45:22",
+      "30",
+      "1",
+      "3",
+      "User attribute password was changed from the old password to the new password"
+    ],
+    [
+      "2026-08-20 15:46:03",
+      "10",
+      "3",
+      "3",
+      "User logged in"
+    ],
+    [
+      "2026-08-20 15:46:14",
+      "50",
+      "3",
+      "3",
+      "An API key was created"
+    ],
+    [
+      "2026-08-20 16:04:56",
+      "10",
+      "3",
+      "3",
+      "User logged in"
+    ],
+    [
+      "2026-08-20 16:23:08",
+      "100",
+      "3",
+      "3",
+      "Cryptographic keypair with id f076c31b507a2a09 was created and associated with the user account"
+    ],
+    [
+      "2026-08-20 16:23:35",
+      "101",
+      "3",
+      "0",
+      "An entry has been signed."
+    ],
+    [
+      "2026-08-20 16:25:23",
+      "102",
+      "3",
+      "3",
+      "An action has been requested: review on experiments (id: 33)"
+    ],
+    [
+      "2026-08-20 17:00:50",
+      "10",
+      "3",
+      "3",
+      "User logged in"
+    ]
+  ],
+  "authfail": [
+    [
+      "2026-08-30 15:27:57"
+    ],
+    [
+      "2026-08-31 15:27:57"
+    ]
+  ],
+  "changelog": [
+    [
+      "experiments",
+      "2026-08-20 15:55:12",
+      "created",
+      "Experiment was created"
+    ],
+    [
+      "experiments",
+      "2026-08-20 15:55:13",
+      "created",
+      "Experiment was created"
+    ],
+    [
+      "items",
+      "2026-08-20 15:55:13",
+      "created",
+      "Resource was created"
+    ],
+    [
+      "experiments_templates",
+      "2026-08-20 15:55:14",
+      "created",
+      "Experiment template was created"
+    ],
+    [
+      "items_types",
+      "2026-08-20 15:55:14",
+      "created",
+      "Resource template was created"
+    ],
+    [
+      "experiments",
+      "2026-08-20 15:55:16",
+      "steps",
+      "create"
+    ],
+    [
+      "experiments",
+      "2026-08-20 15:55:17",
+      "tags",
+      "Added tag \"gdpr-seed\" with id: 23"
+    ],
+    [
+      "experiments",
+      "2026-08-20 15:55:17",
+      "uploads",
+      "Added upload \"gdpr-seed.txt\" with id: 296"
+    ],
+    [
+      "experiments",
+      "2026-08-20 15:55:18",
+      "category",
+      "1"
+    ],
+    [
+      "experiments",
+      "2026-08-20 15:55:18",
+      "status",
+      "1"
+    ],
+    [
+      "experiments",
+      "2026-08-20 16:17:39",
+      "created",
+      "Experiment was created"
+    ],
+    [
+      "experiments",
+      "2026-08-20 16:23:35",
+      "uploads",
+      "Added upload \"signature-archive.zip\" with id: 297"
+    ],
+    [
+      "experiments",
+      "2026-08-20 16:23:35",
+      "signature",
+      "Entity was signed"
+    ],
+    [
+      "experiments",
+      "2026-08-20 16:24:26",
+      "rating",
+      "5"
+    ],
+    [
+      "experiments",
+      "2026-08-20 16:25:23",
+      "action_requested",
+      "An action has been requested: review on experiments (id: 33) (target userid: 3)"
+    ],
+    [
+      "experiments",
+      "2026-08-20 16:29:48",
+      "body",
+      "Depending on your instance configuration, the change in the body is possibly recorded in the revisions. <a href=\"revisions.php?type=experiments&amp;item_id=33\">See revisions page.</a>"
+    ],
+    [
+      "experiments",
+      "2026-08-20 16:29:56",
+      "body",
+      "Depending on your instance configuration, the change in the body is possibly recorded in the revisions. <a href=\"revisions.php?type=experiments&amp;item_id=33\">See revisions page.</a>"
+    ],
+    [
+      "experiments",
+      "2026-08-20 16:30:10",
+      "links",
+      "Added link to experiment: <a href=\"/experiments.php?mode=view&amp;id=54\">Untitled</a>"
+    ],
+    [
+      "experiments",
+      "2026-08-20 16:30:53",
+      "body",
+      "Depending on your instance configuration, the change in the body is possibly recorded in the revisions. <a href=\"revisions.php?type=experiments&amp;item_id=33\">See revisions page.</a>"
+    ],
+    [
+      "experiments_templates",
+      "2026-08-20 16:31:14",
+      "steps",
+      "create"
+    ],
+    [
+      "experiments_templates",
+      "2026-08-20 16:31:17",
+      "steps",
+      "forcelock"
+    ],
+    [
+      "experiments_templates",
+      "2026-08-20 16:31:20",
+      "body",
+      "Depending on your instance configuration, the change in the body is possibly recorded in the revisions. <a href=\"revisions.php?type=experiments_templates&amp;item_id=12\">See revisions page.</a>"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:53",
+      "state",
+      "3"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:53",
+      "custom_id",
+      ""
+    ],
+    [
+      "experiments_templates",
+      "2026-09-02 15:07:54",
+      "custom_id",
+      ""
+    ],
+    [
+      "experiments_templates",
+      "2026-09-02 15:07:54",
+      "state",
+      "3"
+    ],
+    [
+      "items_types",
+      "2026-09-02 15:07:54",
+      "custom_id",
+      ""
+    ],
+    [
+      "items_types",
+      "2026-09-02 15:07:54",
+      "state",
+      "3"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:54",
+      "created",
+      "Experiment was created"
+    ],
+    [
+      "items",
+      "2026-09-02 15:07:54",
+      "state",
+      "3"
+    ],
+    [
+      "items",
+      "2026-09-02 15:07:54",
+      "custom_id",
+      ""
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:54",
+      "created",
+      "Experiment was created"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:54",
+      "state",
+      "3"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:54",
+      "custom_id",
+      ""
+    ],
+    [
+      "items",
+      "2026-09-02 15:07:55",
+      "created",
+      "Resource was created"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:55",
+      "category",
+      "1"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:55",
+      "status",
+      "1"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:55",
+      "uploads",
+      "Added upload \"gdpr-seed.txt\" with id: 300"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:55",
+      "tags",
+      "Added tag \"gdpr-seed\" with id: 23"
+    ],
+    [
+      "experiments",
+      "2026-09-02 15:07:55",
+      "steps",
+      "create"
+    ],
+    [
+      "experiments_templates",
+      "2026-09-02 15:07:55",
+      "created",
+      "Experiment template was created"
+    ],
+    [
+      "items_types",
+      "2026-09-02 15:07:55",
+      "created",
+      "Resource template was created"
+    ]
+  ],
+  "api_keys": [
+    [
+      "5",
+      "api",
+      "2026-08-20 15:46:14",
+      "2026-08-20 16:59:32",
+      "1",
+      "2"
+    ],
+    [
+      "7",
+      "hermes-gdpr-test",
+      "2026-09-02 15:06:14",
+      "2026-09-02 15:07:22",
+      "1",
+      "2"
+    ]
+  ],
+  "exports": [
+    [
+      "6",
+      "2026-09-02 15:27:57",
+      "1",
+      "eln",
+      "gdpr-sample-export.eln",
+      "NULL"
+    ]
+  ],
+  "todolist": [
+    [
+      "9",
+      "2026-08-20 15:55:19",
+      "NULL",
+      ""
+    ],
+    [
+      "10",
+      "2026-09-02 15:07:56",
+      "NULL",
+      ""
+    ]
+  ],
+  "sig_keys": [
+    [
+      "3",
+      "2026-08-20 16:23:08",
+      "2026-08-20 16:23:35",
+      "1",
+      "1",
+      "untrusted comment: elabftw/50612: public key f076c31b507a2a09\\nRWTwdsMbUHoqCZ+G6H0tepX7jmFXHeeBpRqbcnNnLMH6XjNwfRhK3DYx\\n"
+    ]
+  ],
+  "favtags": [
+    [
+      "29"
+    ]
+  ],
+  "pins": [
+    [
+      "experiments",
+      "33"
+    ],
+    [
+      "items",
+      "81"
+    ]
+  ],
+  "team_groups": [
+    [
+      "12"
+    ]
+  ],
+  "storage_history": [
+    [
+      "2026-09-02 15:27:58",
+      "13",
+      "NULL",
+      "NULL"
+    ]
+  ],
+  "compounds": [
+    [
+      "4",
+      "GDPR Seed Compound",
+      "NULL",
+      "NULL",
+      "NULL",
+      "2026-08-20 15:48:35",
+      "2"
+    ]
+  ],
+  "request_actions": [
+    [
+      "experiments",
+      "30",
+      "2026-08-20 16:25:23",
+      "1",
+      "33",
+      "3",
+      "3"
+    ]
+  ],
+  "procurement": [
+    [
+      "9",
+      "2026-09-02 15:27:58",
+      "33",
+      "3",
+      "0",
+      "10",
+      "2"
+    ]
+  ],
+  "notifications": [
+    [
+      "7",
+      "2026-08-20 16:25:23",
+      "90",
+      "0",
+      "{\"action\": \"review\", \"entity_id\": 33, \"entity_page\": \"experiments.php\", \"requester_userid\": 3, \"action_enum_value\": 30, "
+    ]
+  ],
+  "links": [
+    [
+      "exp-exp",
+      "33",
+      "54"
+    ]
+  ],
+  "storage_assignments": [
+    [
+      "experiments",
+      "33",
+      "7",
+      "1.00",
+      "�",
+      "2026-08-20 16:30:40"
+    ]
+  ],
+  "compound_links": [
+    [
+      "experiments",
+      "33",
+      "4",
+      "2026-09-02 15:27:59"
+    ]
+  ],
+  "template_steps": [
+    [
+      "experiments_templates",
+      "12",
+      "first step",
+      "0",
+      "NULL"
+    ]
+  ],
+  "third_party_mentions": [
+    [
+      "experiments_comments",
+      "33",
+      "6",
+      "2026-09-02 15:27:59",
+      "GDPR sample: comment by a colleague on your entry"
+    ]
+  ],
+  "comments_on_other_entries": [
+    [
+      "experiments_comments",
+      "20",
+      "3",
+      "2026-09-02 15:27:59",
+      "GDPR sample: my comment on a shared entry"
+    ]
+  ],
+  "name_mentions": [
+    [
+      "experiments_comments",
+      "55",
+      "1",
+      "2026-08-20 16:59:33",
+      "GDPR test: mention of GDPR Testuser in a foreign entry"
+    ]
+  ],
+  "bookings": []
+}

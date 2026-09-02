@@ -6,12 +6,19 @@ The sample uses generic entries ("Sample Experiment", "Sample Item", ...)
 and one record per appendix category, matching the DB pipeline output
 layout so gdpr_report.py can render it. Run:
 
-    python3 sample/make_sample_report.py
+    python3 sample/make_sample_report.py              # English (User1)
+    python3 sample/make_sample_report.py --lang de    # German  (User1-de)
     # then open sample/sample-report/User1/index.html
+
+The committed samples under sample/sample-report/ (User1 = en, User1-de =
+de) are generated from the seeded GDPR test user instead - see
+tests/seed_test_data.py + tests/README-testing.md. This script is the
+offline fallback for building a sample without an eLabFTW instance.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import shutil
 import sys
@@ -32,10 +39,16 @@ def w(path: Path, data) -> None:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--lang", default="en", choices=["en", "de"],
+                    help="report language (default: en)")
+    args = ap.parse_args()
+    lang = args.lang
+    suffix = "-de" if lang == "de" else ""
     if OUT.exists():
         shutil.rmtree(OUT)
     uid = 1
-    user_dir = OUT / f"User{uid}"
+    user_dir = OUT / f"User1{suffix}"
     user_dir.mkdir(parents=True)
 
     # --- user ---
@@ -167,13 +180,13 @@ def main() -> int:
     })
 
     # --- render the report into the sample dir ---
-    rc = gdpr_report.build_report_for_user(user_dir)
+    rc = gdpr_report.build_report_for_user(user_dir, lang)
     if rc != 0:
         print("report build failed")
         return 1
 
     print(f"Sample report written to {OUT}/")
-    print("Open sample/sample-report/User1/index.html in a browser.")
+    print(f"Open sample/sample-report/User1{suffix}/index.html in a browser.")
     return 0
 
 

@@ -1,79 +1,75 @@
 {
-  "target_userid": 1,
-  "exported_at": "2026-08-20T12:00:00+0000",
-  "source": "db",
+  "target_userid": 3,
+  "exported_at": "2026-09-02T15:28:04+0000",
   "user": {
-    "userid": 1,
-    "email": "sample.user@example.org",
-    "firstname": "Sample",
-    "lastname": "User",
-    "fullname": "Sample User",
-    "created_at": "2024-01-15 09:00:00",
-    "last_login": "2026-08-01 10:00:00",
+    "userid": 3,
+    "email": "gdpr-test@example.org",
+    "firstname": "GDPR",
+    "lastname": "Testuser",
+    "created_at": "2026-08-20 15:30:49",
+    "last_login": "2026-08-20 17:00:50",
     "validated": "1",
     "is_sysadmin": "0",
     "lang": "en_GB",
-    "teams": [
-      {
-        "id": 1,
-        "name": "Sample Team",
-        "is_admin": 0,
-        "is_owner": 0,
-        "is_archived": 0
-      }
-    ]
+    "orcid": "NULL"
   },
   "teams": [
     {
-      "id": 1,
-      "name": "Sample Team",
-      "is_admin": 0,
-      "is_owner": 0,
-      "is_archived": 0
+      "id": 2,
+      "is_owner": "0",
+      "is_admin": "0",
+      "is_archived": "0"
     }
   ],
   "entities": {
     "experiments": [
-      1,
-      2
+      33,
+      34,
+      54,
+      60,
+      61
     ],
     "items": [
-      3
+      81,
+      85
     ],
     "experiments_templates": [
-      4
+      12,
+      14
     ],
     "items_types": [
-      5
+      9,
+      8
     ]
   },
-  "uploads_total": 1,
+  "uploads_total": 3,
   "uploads_active": 1,
   "uploads_archived": 0,
   "upload_files_downloaded": 0,
   "db_appendix_counts": {
-    "audit_logs": 1,
-    "authfail": 1,
-    "changelog": 1,
-    "api_keys": 1,
+    "audit_logs": 13,
+    "authfail": 2,
+    "changelog": 42,
+    "api_keys": 2,
     "exports": 1,
-    "todolist": 1,
+    "todolist": 2,
     "sig_keys": 1,
     "favtags": 1,
-    "pins": 1,
+    "pins": 2,
     "team_groups": 1,
     "storage_history": 1,
-    "storage_assignments": 1,
     "compounds": 1,
-    "compound_links": 1,
-    "template_steps": 1,
     "request_actions": 1,
     "procurement": 1,
     "notifications": 1,
     "links": 1,
-    "third_party_mentions": 0,
+    "storage_assignments": 1,
+    "compound_links": 1,
+    "template_steps": 1,
+    "third_party_mentions": 1,
     "comments_on_other_entries": 1,
-    "name_mentions": 0,
-    "bookings": 1
-  }
+    "name_mentions": 1,
+    "bookings": 0
+  },
+  "source": "db"
 }

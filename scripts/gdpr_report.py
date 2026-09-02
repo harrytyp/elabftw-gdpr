@@ -21,17 +21,76 @@ import sys
 import zipfile
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Allow running this file directly (python scripts/gdpr_report.py) while the
+# package imports (scripts.i18n) still resolve. Harmless when imported as a
+# module - the root is already on sys.path then.
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from PIL import Image
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus.flowables import Flowable
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from scripts.i18n import (LOCALE_TO_LANG, needs_ttf_font, normalize_lang, t, tt)
+
 OUTPUT_DIR = PROJECT_ROOT / "output"
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tif", ".tiff"}
 THUMBNAIL_MAX = 400
+
+# Report language, set per run (default "en"). Filled by main()/build_reports.
+REPORT_LANG = "en"
+# TTF fallback font for scripts outside cp1252 (PL/CZ/...). Resolved lazily.
+_TTF_CANDIDATES = [
+    # Windows
+    "C:/Windows/Fonts/DejaVuSans.ttf",
+    "C:/Windows/Fonts/arial.ttf",
+    # Linux (reportlab recommends DejaVu; common on debian/ubuntu)
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+]
+_BASE_FONT = "Helvetica"
+_BASE_FONT_BOLD = "Helvetica-Bold"
+
+
+def _resolve_fonts(lang: str) -> None:
+    """Register a TTF pair when the language needs non-cp1252 glyphs.
+
+    Falls back to Helvetica (WinAnsi) for en/de/fr/es/it/pt/nl and whenever
+    no TTF is found, so the report still builds everywhere.
+    """
+    global _BASE_FONT, _BASE_FONT_BOLD
+    if not needs_ttf_font(lang):
+        return
+    import os
+    regular = bold = None
+    for cand in _TTF_CANDIDATES:
+        if os.path.exists(cand):
+            if "Bold" in cand or "bold" in cand:
+                bold = bold or cand
+            else:
+                regular = regular or cand
+    if regular and bold:
+        try:
+            pdfmetrics.registerFont(TTFont("GDPRReport", regular))
+            pdfmetrics.registerFont(TTFont("GDPRReport-Bold", bold))
+            _BASE_FONT = "GDPRReport"
+            _BASE_FONT_BOLD = "GDPRReport-Bold"
+        except Exception:
+            _BASE_FONT = "Helvetica"
+            _BASE_FONT_BOLD = "Helvetica-Bold"
+    else:
+        # only one of the pair found: keep Helvetica rather than a broken mix
+        _BASE_FONT = "Helvetica"
+        _BASE_FONT_BOLD = "Helvetica-Bold"
 
 
 def redact_names(text: str, names: list[str]) -> str:
@@ -87,8 +146,41 @@ def escape(value) -> str:
     return html.escape(str(value if value is not None else ""), quote=True)
 
 
-def format_ts(value) -> str:
-    return str(value)[:16] if value else "-"
+def _date_fmt(lang: str) -> str:
+    """Date format for a report language (used by format_ts)."""
+    return {
+        "de": "%d.%m.%Y %H:%M",
+        "fr": "%d/%m/%Y %H:%M",
+        "es": "%d/%m/%Y %H:%M",
+        "it": "%d/%m/%Y %H:%M",
+        "pt": "%d/%m/%Y %H:%M",
+        "nl": "%d-%m-%Y %H:%M",
+        "pl": "%d.%m.%Y %H:%M",
+    }.get(lang, "%Y-%m-%d %H:%M")
+
+
+def format_ts(value, lang: str | None = None) -> str:
+    """Render a timestamp in the report language's date format.
+
+    The raw value is a string from the API/DB (e.g. ``2026-08-20 09:30:00``
+    or ISO). We reformat only when it parses cleanly; otherwise the original
+    string is returned unchanged (never mangled).
+    """
+    if not value:
+        return "-"
+    text = str(value)
+    candidate = text.replace("T", " ")[:16]
+    for src_fmt, dst_fmt in (
+        ("%Y-%m-%d %H:%M", _date_fmt(lang or REPORT_LANG)),
+        ("%Y-%m-%d", "%d.%m.%Y" if (lang or REPORT_LANG) == "de" else "%Y-%m-%d"),
+    ):
+        try:
+            from datetime import datetime
+            parsed = datetime.strptime(candidate, src_fmt)
+            return parsed.strftime(dst_fmt)
+        except ValueError:
+            continue
+    return text[:16]
 
 
 def read_json(path: Path):
@@ -183,17 +275,23 @@ def entity_metadata(entity: dict, entity_type: str, lookups: dict | None = None)
     if category_name:
         category = f"{category} ({category_name})"
     return [
-        ("ID / elabid", f"{entity.get('id')} / {entity.get('elabid', '-')}"),
-        ("Created", format_ts(entity.get("created_at"))),
-        ("Modified", format_ts(entity.get("modified_at"))),
-        ("Last changed by", entity.get("lastchangeby") or "-"),
-        ("Status", status),
-        ("Category", category),
-        ("Locked", f"by {entity.get('lockedby')} since {format_ts(entity.get('locked_at'))}"
-                   if entity.get("locked") else "no"),
-        ("Timestamped", format_ts(entity.get("timestamped_at")) if entity.get("timestamped") else "no"),
-        ("Custom ID", entity.get("custom_id") or "-"),
-        ("Rating", entity.get("rating") or "-"),
+        (t(REPORT_LANG, "meta_id_elabid"),
+         f"{entity.get('id')} / {entity.get('elabid', '-')}"),
+        (t(REPORT_LANG, "meta_created"), format_ts(entity.get("created_at"))),
+        (t(REPORT_LANG, "meta_modified"), format_ts(entity.get("modified_at"))),
+        (t(REPORT_LANG, "meta_last_changed_by"), entity.get("lastchangeby") or "-"),
+        (t(REPORT_LANG, "meta_status"), status),
+        (t(REPORT_LANG, "meta_category"), category),
+        (t(REPORT_LANG, "meta_locked"),
+         t(REPORT_LANG, "meta_locked_by_since",
+           who=entity.get("lockedby") or "-",
+           when=format_ts(entity.get("locked_at")))
+         if entity.get("locked") else t(REPORT_LANG, "no")),
+        (t(REPORT_LANG, "meta_timestamped"),
+         format_ts(entity.get("timestamped_at")) if entity.get("timestamped")
+         else t(REPORT_LANG, "no")),
+        (t(REPORT_LANG, "meta_custom_id"), entity.get("custom_id") or "-"),
+        (t(REPORT_LANG, "meta_rating"), entity.get("rating") or "-"),
     ]
 
 
@@ -204,6 +302,55 @@ def make_thumbnail(source: Path, target: Path) -> None:
         image.convert("RGB").save(target, "JPEG", quality=82)
     except Exception:
         shutil.copy(source, target)
+
+
+class _AcroFormField(Flowable):
+    """A labelled AcroForm text field usable inside a Platypus story.
+
+    Renders a bold label line, then an interactive single-line text field
+    (AcroForm) that the operator can click and type into in any PDF reader.
+    Uses ``relative=True`` so coordinates are taken from the flowable's own
+    position (ReportLab >= 3.6; works on 4.x and 5.x).
+    """
+
+    def __init__(self, label: str, field_name: str,
+                 label_width: float = 68 * mm,
+                 width: float = 130 * mm,
+                 height: float = 5.6 * mm,
+                 font_size: int = 9):
+        super().__init__()
+        self.label = label
+        self.field_name = field_name
+        self.label_width = label_width
+        self.width = width
+        self.height = height
+        self.font_size = font_size
+
+    def wrap(self, availWidth, availHeight):
+        return self.width, self.height
+
+    def draw(self):
+        c = self.canv
+        # bold label on the left
+        c.saveState()
+        c.setFont("Helvetica-Bold", 8.5)
+        c.drawString(0, self.height - 3, self.label)
+        c.restoreState()
+        # interactive AcroForm field on the right (relative to this flowable)
+        c.acroForm.textfield(
+            name=self.field_name,
+            x=self.label_width,
+            y=0,
+            width=self.width - self.label_width,
+            height=self.height - 0.5 * mm,
+            borderWidth=0.4,
+            borderColor=colors.HexColor("#666666"),
+            fillColor=colors.HexColor("#fbfbfb"),
+            fontName="Helvetica",
+            fontSize=self.font_size,
+            forceBorder=True,
+            relative=True,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -224,6 +371,7 @@ def build_entity_page(out_dir: Path, report_dir: Path, assets_dir: Path,
     tags = read_json(entity_dir / "tags.json") or []
     uploads = read_json(entity_dir / "uploads.json") or []
     request_actions = read_json(entity_dir / "request_actions.json") or []
+    lang = REPORT_LANG
 
     meta_rows = "".join(
         f"<tr><td class='klein'>{escape(k)}</td><td>{escape(v)}</td></tr>"
@@ -234,7 +382,7 @@ def build_entity_page(out_dir: Path, report_dir: Path, assets_dir: Path,
     step_rows = ""
     for step in steps:
         done = "✔" if step.get("finished") else "☐"
-        deadline = (f"<br><span class='meta'>Deadline: {format_ts(step.get('deadline'))}</span>"
+        deadline = (f"<br><span class='meta'>{tt(lang, 'deadline')}: {format_ts(step.get('deadline'))}</span>"
                     if step.get("deadline") else "")
         step_rows += f"<tr><td>{done}</td><td>{escape(step.get('body'))}{deadline}</td></tr>"
 
@@ -249,7 +397,7 @@ def build_entity_page(out_dir: Path, report_dir: Path, assets_dir: Path,
     revisions_html = ""
     for revision in revisions:
         revisions_html += (
-            f"<details><summary>Revision from {format_ts(revision.get('created_at'))} "
+            f"<details><summary>{tt(lang, 'revision_from')} {format_ts(revision.get('created_at'))} "
             f"- {escape(revision.get('userid'))}</summary>"
             f"<div class='body'>{escape(revision.get('body'))}</div></details>"
         )
@@ -287,20 +435,20 @@ def build_entity_page(out_dir: Path, report_dir: Path, assets_dir: Path,
 
     body = entity.get("body") or ""
     page.write_text(f"""<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
-<title>{escape(entity.get('title', entity_type))} - {entity_type} {eid}</title>
+<html lang="{lang}"><head><meta charset="utf-8">
+<title>{escape(entity.get('title', tt(lang, 'no_title')))} - {entity_type} {eid}</title>
 <style>{CSS}</style></head><body><div class="wrap">
-<a class="back" href="../index.html">← Back to overview</a>
-<header><h1>{escape(entity.get('title', '(no title)'))}</h1>
-<p>{entity_type} #{eid} · elabid {escape(entity.get('elabid', '-'))} · modified {format_ts(entity.get('modified_at'))}</p></header>
-<h2>Metadata</h2><table>{meta_rows}</table>
-<h2>Content</h2><div class="body">{escape(body)}</div>
-<h2>Tags</h2><p>{tags_html or "<span class='meta'>-</span>"}</p>
-<h2>Steps</h2><table><tr><th></th><th>Step</th></tr>{step_rows}</table>
-<h2>Comments ({len(comments)})</h2>{comments_html or "<p class='meta'>none</p>"}
-<h2>Revisions ({len(revisions)})</h2>{revisions_html or "<p class='meta'>none</p>"}
-<h2>Uploads ({len(uploads)})</h2>{gallery_html}{files_html}
-<h2>Request actions ({len(request_actions)})</h2>{request_actions_html or "<p class='meta'>none</p>"}
+<a class="back" href="../index.html">{tt(lang, 'back_to_overview')}</a>
+<header><h1>{escape(entity.get('title', tt(lang, 'no_title')))}</h1>
+<p>{entity_type} #{eid} · elabid {escape(entity.get('elabid', '-'))} · {t(REPORT_LANG, 'meta_modified').lower()} {format_ts(entity.get('modified_at'))}</p></header>
+<h2>{tt(lang, 'metadata')}</h2><table>{meta_rows}</table>
+<h2>{tt(lang, 'content')}</h2><div class="body">{escape(body)}</div>
+<h2>{tt(lang, 'tags')}</h2><p>{tags_html or "<span class='meta'>-</span>"}</p>
+<h2>{tt(lang, 'steps')}</h2><table><tr><th></th><th>{tt(lang, 'step')}</th></tr>{step_rows}</table>
+<h2>{tt(lang, 'comments')} ({len(comments)})</h2>{comments_html or f"<p class='meta'>{tt(lang, 'none')}</p>"}
+<h2>{tt(lang, 'revisions')} ({len(revisions)})</h2>{revisions_html or f"<p class='meta'>{tt(lang, 'none')}</p>"}
+<h2>{tt(lang, 'uploads')} ({len(uploads)})</h2>{gallery_html}{files_html}
+<h2>{tt(lang, 'request_actions')} ({len(request_actions)})</h2>{request_actions_html or f"<p class='meta'>{tt(lang, 'none')}</p>"}
 </div></body></html>""")
     return page
 
@@ -372,16 +520,18 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
     entry_links.sort(key=str.lower)
 
     uid = user.get("userid")
+    lang = REPORT_LANG
+    y, n = tt(lang, "yes"), tt(lang, "no")
     my_groups = [g for g in groups if user_in_group(g, uid)]
     team_rows = "".join(
         f"<tr><td>{escape(t.get('name'))}</td><td>{escape(t.get('id'))}</td>"
-        f"<td>{'yes' if t.get('is_admin') else 'no'}</td><td>{'yes' if t.get('is_owner') else 'no'}</td>"
-        f"<td>{'yes' if t.get('is_archived') else 'no'}</td></tr>" for t in teams
+        f"<td>{y if t.get('is_admin') else n}</td><td>{y if t.get('is_owner') else n}</td>"
+        f"<td>{y if t.get('is_archived') else n}</td></tr>" for t in teams
     )
     notification_rows = "".join(
         f"<tr><td>{format_ts(n.get('created_at'))}</td><td>{escape(n.get('category'))}</td>"
         f"<td>{escape(pretty_notification_body(n.get('body')))}</td>"
-        f"<td>{'yes' if n.get('is_ack') else 'no'}</td></tr>" for n in notifications
+        f"<td>{y if n.get('is_ack') else n}</td></tr>" for n in notifications
     )
     group_rows = "".join(
         f"<tr><td>{escape(g.get('name') if isinstance(g, dict) else g)}</td>"
@@ -405,24 +555,29 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
         for r in request_actions_user
     )
 
+    # cards (summary)
     cards = "".join(
         f"<div class='card'><b>{n}</b>{label}</div>"
         for label, n in [
-            ("Experiments", counts["experiments"]),
-            ("Items", counts["items"]),
-            ("Templates", counts["experiments_templates"]),
-            ("Item types", counts["items_types"]),
-            ("Uploads", uploads_total),
-            ("Notifications", len(notifications)),
-            ("Bookings", len(bookings)),
-            ("Groups", len(my_groups)),
-            ("Procurement", len(procurement)),
+            (tt(lang, "card_experiments"), counts["experiments"]),
+            (tt(lang, "card_items"), counts["items"]),
+            (tt(lang, "card_templates"), counts["experiments_templates"]),
+            (tt(lang, "card_item_types"), counts["items_types"]),
+            (tt(lang, "card_uploads"), uploads_total),
+            (tt(lang, "card_notifications"), len(notifications)),
+            (tt(lang, "card_bookings"), len(bookings)),
+            (tt(lang, "card_groups"), len(my_groups)),
+            (tt(lang, "card_procurement"), len(procurement)),
         ]
     )
 
     # DB appendix rows (pipeline B)
     appendix_sections = ""
     if db_appendix:
+        lang = REPORT_LANG
+        # appendix strings are static HTML (no user data) -> t(), not tt()
+        def A(key: str, **fmt) -> str:
+            return t(lang, key, **fmt)
         def _rows(name, cols):
             return "".join(
                 "<tr>" + "".join(f"<td>{escape(c)}</td>" for c in row[:cols]) + "</tr>"
@@ -445,112 +600,98 @@ def build_html_report(out_dir: Path, report_dir: Path) -> None:
                 out.append("<tr>" + "".join(f"<td>{escape(c)}</td>" for c in cells) + "</tr>")
             return "".join(out)
         appendix_sections = f"""
-<h2>DB appendix (audit trail, logins, changelog, keys)</h2>
-<p><b>Source:</b> direct database export (no API key). Includes all uploads
-(active {uploads_active or '?'}, archived {uploads_archived or '?'}) and records
-that are not reachable via the API.</p>
-<h3>Audit trail ({len(db_appendix.get('audit_logs', []))})</h3>
-<table><tr><th>Date</th><th>Category</th><th>Requester</th><th>Target</th><th>Body (truncated)</th></tr>{_rows('audit_logs', 5)}</table>
-<h3>Failed logins ({len(db_appendix.get('authfail', []))})</h3>
-<table><tr><th>Attempt time</th></tr>{_rows('authfail', 1)}</table>
-<h3>Changelog ({len(db_appendix.get('changelog', []))})</h3>
-<table><tr><th>Type</th><th>Date</th><th>Target</th><th>Content</th></tr>{_rows('changelog', 4)}</table>
-<h3>API keys ({len(db_appendix.get('api_keys', []))})</h3>
-<table><tr><th>ID</th><th>Name</th><th>Created</th><th>Last used</th><th>Write</th></tr>{_rows('api_keys', 5)}</table>
-<h3>Exports ({len(db_appendix.get('exports', []))})</h3>
-<table><tr><th>ID</th><th>Date</th><th>State</th><th>Format</th></tr>{_rows('exports', 4)}</table>
-<h3>Todolist ({len(db_appendix.get('todolist', []))})</h3>
-<table><tr><th>ID</th><th>Created</th><th>Body</th></tr>{_rows('todolist', 3)}</table>
-<h3>Sig keys ({len(db_appendix.get('sig_keys', []))}) / Favorites ({len(db_appendix.get('favtags', []))})</h3>
-<table><tr><th>Sig key ID</th><th>Created</th><th>State</th></tr>{_rows('sig_keys', 3)}</table>
-<h3>Pins ({len(db_appendix.get('pins', []))})</h3>
-<table><tr><th>Type</th><th>Entity ID</th></tr>{_rows('pins', 2)}</table>
-<h3>Team groups ({len(db_appendix.get('team_groups', []))})</h3>
-<table><tr><th>Group ID</th></tr>{_rows('team_groups', 1)}</table>
-<h3>Storage history ({len(db_appendix.get('storage_history', []))})</h3>
-<table><tr><th>Date</th><th>Storage unit</th><th>Old parent</th><th>New parent</th></tr>{_rows('storage_history', 4)}</table>
-<h3>Compounds ({len(db_appendix.get('compounds', []))})</h3>
-<table><tr><th>ID</th><th>Name</th><th>IUPAC</th><th>CAS</th><th>Created</th></tr>{_rows('compounds', 5)}</table>
-<h3>Request actions ({len(db_appendix.get('request_actions', []))})</h3>
-<table><tr><th>Type</th><th>Action</th><th>Date</th><th>State</th><th>Entity</th></tr>{_rows('request_actions', 5)}</table>
-<h3>Procurement ({len(db_appendix.get('procurement', []))})</h3>
-<table><tr><th>ID</th><th>Date</th><th>Entity</th><th>Qty</th><th>State</th></tr>{_rows('procurement', 5)}</table>
-<h3>Notifications ({len(db_appendix.get('notifications', []))})</h3>
-<table><tr><th>ID</th><th>Date</th><th>Category</th><th>Read</th><th>Body</th></tr>{_rows('notifications', 5)}</table>
-<h3>Entity links ({len(db_appendix.get('links', []))})</h3>
-<table><tr><th>Type</th><th>Item</th><th>Link</th></tr>{_rows('links', 3)}</table>
-<h3>Storage assignments ({len(db_appendix.get('storage_assignments', []))})</h3>
-<table><tr><th>Type</th><th>Item</th><th>Storage</th><th>Qty</th><th>Unit</th><th>Date</th></tr>{_rows('storage_assignments', 6)}</table>
-<h3>Compound links ({len(db_appendix.get('compound_links', []))})</h3>
-<table><tr><th>Type</th><th>Entity</th><th>Compound</th><th>Date</th></tr>{_rows('compound_links', 4)}</table>
-<h3>Template/type steps ({len(db_appendix.get('template_steps', []))})</h3>
-<table><tr><th>Type</th><th>Template</th><th>Step</th><th>Finished</th></tr>{_rows('template_steps', 4)}</table>
-<h3>Third-party comments on your entries ({len(db_appendix.get('third_party_mentions', []))})</h3>
-<p class="notice notice-error"><b>Redact before sending (Art. 15(4)):</b> these are comments
-by OTHER users on your entries - they may contain third-party personal data.</p>
-<table><tr><th>Type</th><th>Entity</th><th>User</th><th>Date</th><th>Comment</th></tr>{_redact_rows('third_party_mentions', 5, 4)}</table>
-<h3>Your comments on other entries ({len(db_appendix.get('comments_on_other_entries', []))})</h3>
-<p>Your own statements on entries that belong to other users - only the comment
-itself is included, not the foreign entry's content.</p>
-<table><tr><th>Type</th><th>Entry</th><th>User</th><th>Date</th><th>Comment</th></tr>{_redact_rows('comments_on_other_entries', 5, 4)}</table>
-<h3>Name mentions in other users' comments ({len(db_appendix.get('name_mentions', []))})</h3>
-<p class="notice notice-error"><b>Redact before sending (Art. 15(4)):</b> comments by others
-that mention your name/email. Only the matching comment is shown, with other users' names redacted.</p>
-<table><tr><th>Type</th><th>Entry</th><th>User</th><th>Date</th><th>Comment</th></tr>{_redact_rows('name_mentions', 5, 4)}</table>
+<h2>{A('appendix_title')}</h2>
+<p><b>{A('appendix_source_label')}</b>{A('appendix_source_text', active=uploads_active or '?', archived=uploads_archived or '?')}</p>
+<h3>{A('appx_audit_trail')} ({len(db_appendix.get('audit_logs', []))})</h3>
+<table><tr><th>{A('col_date')}</th><th>{A('col_category')}</th><th>{A('col_requester')}</th><th>{A('col_target')}</th><th>{A('col_body')}</th></tr>{_rows('audit_logs', 5)}</table>
+<h3>{A('appx_failed_logins')} ({len(db_appendix.get('authfail', []))})</h3>
+<table><tr><th>{A('col_attempt_time')}</th></tr>{_rows('authfail', 1)}</table>
+<h3>{A('appx_changelog')} ({len(db_appendix.get('changelog', []))})</h3>
+<table><tr><th>{A('col_type')}</th><th>{A('col_date')}</th><th>{A('col_target')}</th><th>{A('col_content')}</th></tr>{_rows('changelog', 4)}</table>
+<h3>{A('appx_api_keys')} ({len(db_appendix.get('api_keys', []))})</h3>
+<table><tr><th>{A('col_id')}</th><th>{A('col_name')}</th><th>{A('col_created')}</th><th>{A('col_last_used')}</th><th>{A('col_write')}</th></tr>{_rows('api_keys', 5)}</table>
+<h3>{A('appx_exports')} ({len(db_appendix.get('exports', []))})</h3>
+<table><tr><th>{A('col_id')}</th><th>{A('col_date')}</th><th>{A('col_state')}</th><th>{A('col_format')}</th></tr>{_rows('exports', 4)}</table>
+<h3>{A('appx_todolist')} ({len(db_appendix.get('todolist', []))})</h3>
+<table><tr><th>{A('col_id')}</th><th>{A('col_created')}</th><th>{A('col_body_full')}</th></tr>{_rows('todolist', 3)}</table>
+<h3>{A('appx_sig_keys')} ({len(db_appendix.get('sig_keys', []))}) / {A('appx_favorites')} ({len(db_appendix.get('favtags', []))})</h3>
+<table><tr><th>{A('col_sig_key_id')}</th><th>{A('col_created')}</th><th>{A('col_state')}</th></tr>{_rows('sig_keys', 3)}</table>
+<h3>{A('appx_pins')} ({len(db_appendix.get('pins', []))})</h3>
+<table><tr><th>{A('col_type')}</th><th>{A('col_entity_id')}</th></tr>{_rows('pins', 2)}</table>
+<h3>{A('appx_team_groups')} ({len(db_appendix.get('team_groups', []))})</h3>
+<table><tr><th>{A('col_group_id')}</th></tr>{_rows('team_groups', 1)}</table>
+<h3>{A('appx_storage_history')} ({len(db_appendix.get('storage_history', []))})</h3>
+<table><tr><th>{A('col_date')}</th><th>{A('col_storage_unit')}</th><th>{A('col_old_parent')}</th><th>{A('col_new_parent')}</th></tr>{_rows('storage_history', 4)}</table>
+<h3>{A('appx_compounds')} ({len(db_appendix.get('compounds', []))})</h3>
+<table><tr><th>{A('col_id')}</th><th>{A('col_name')}</th><th>{A('col_iupac')}</th><th>{A('col_cas')}</th><th>{A('col_created')}</th></tr>{_rows('compounds', 5)}</table>
+<h3>{A('appx_request_actions')} ({len(db_appendix.get('request_actions', []))})</h3>
+<table><tr><th>{A('col_type')}</th><th>{A('col_action')}</th><th>{A('col_date')}</th><th>{A('col_state')}</th><th>{A('col_entity')}</th></tr>{_rows('request_actions', 5)}</table>
+<h3>{A('appx_procurement')} ({len(db_appendix.get('procurement', []))})</h3>
+<table><tr><th>{A('col_id')}</th><th>{A('col_date')}</th><th>{A('col_entity')}</th><th>{A('col_qty')}</th><th>{A('col_state')}</th></tr>{_rows('procurement', 5)}</table>
+<h3>{A('appx_notifications')} ({len(db_appendix.get('notifications', []))})</h3>
+<table><tr><th>{A('col_id')}</th><th>{A('col_date')}</th><th>{A('col_category')}</th><th>{A('col_read')}</th><th>{A('col_body_full')}</th></tr>{_rows('notifications', 5)}</table>
+<h3>{A('appx_entity_links')} ({len(db_appendix.get('links', []))})</h3>
+<table><tr><th>{A('col_type')}</th><th>{A('col_item')}</th><th>{A('col_link')}</th></tr>{_rows('links', 3)}</table>
+<h3>{A('appx_storage_assignments')} ({len(db_appendix.get('storage_assignments', []))})</h3>
+<table><tr><th>{A('col_type')}</th><th>{A('col_item')}</th><th>{A('col_storage')}</th><th>{A('col_qty')}</th><th>{A('col_unit')}</th><th>{A('col_date')}</th></tr>{_rows('storage_assignments', 6)}</table>
+<h3>{A('appx_compound_links')} ({len(db_appendix.get('compound_links', []))})</h3>
+<table><tr><th>{A('col_type')}</th><th>{A('col_entity')}</th><th>{A('col_compound')}</th><th>{A('col_date')}</th></tr>{_rows('compound_links', 4)}</table>
+<h3>{A('appx_template_steps')} ({len(db_appendix.get('template_steps', []))})</h3>
+<table><tr><th>{A('col_type')}</th><th>{A('col_template')}</th><th>{A('col_step')}</th><th>{A('col_finished')}</th></tr>{_rows('template_steps', 4)}</table>
+<h3>{A('appx_third_party_comments')} ({len(db_appendix.get('third_party_mentions', []))})</h3>
+<p class="notice notice-error"><b>{A('redact_before_sending')}</b> {A('appx_redact_notice')}</p>
+<table><tr><th>{A('col_type')}</th><th>{A('col_entity')}</th><th>{A('col_user')}</th><th>{A('col_date')}</th><th>{A('col_comment')}</th></tr>{_redact_rows('third_party_mentions', 5, 4)}</table>
+<h3>{A('appx_your_comments')} ({len(db_appendix.get('comments_on_other_entries', []))})</h3>
+<p>{A('appx_your_comments_notice')}</p>
+<table><tr><th>{A('col_type')}</th><th>{A('col_entry')}</th><th>{A('col_user')}</th><th>{A('col_date')}</th><th>{A('col_comment')}</th></tr>{_redact_rows('comments_on_other_entries', 5, 4)}</table>
+<h3>{A('appx_name_mentions')} ({len(db_appendix.get('name_mentions', []))})</h3>
+<p class="notice notice-error"><b>{A('redact_before_sending')}</b> {A('appx_name_mentions_notice')}</p>
+<table><tr><th>{A('col_type')}</th><th>{A('col_entry')}</th><th>{A('col_user')}</th><th>{A('col_date')}</th><th>{A('col_comment')}</th></tr>{_redact_rows('name_mentions', 5, 4)}</table>
 """
 
     # API-mode limitation banner (pipeline A stays transparent)
     limitation_note = ""
     if not is_db:
-        limitation_note = f"""
-<div class="notice notice-error"><b>API-Limitation:</b> This report was created
-from the API only (1-click). The following data is NOT included and must be added
-via <code>scripts/gdpr_cli.sql</code> or the DB pipeline
-(<code>elab-gdpr-db --users {escape(user.get('userid', ''))}</code>):
-audit_logs, authfail, changelog, api_keys, exports, todolist, sig_keys, favtags,
-and archived uploads (state=2, {uploads_archived or 'n/a'} additional files).
-See LIMITATIONS.md in this package.</div>
-"""
+        limitation_note = (
+            f"<div class=\"notice notice-error\"><b>{tt(lang, 'limitation_title')}</b> "
+            f"{t(lang, 'limitation_body', uid=escape(user.get('userid', '')), archived=uploads_archived or 'n/a')}</div>"
+        )
 
     (report_dir / "index.html").write_text(f"""<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
-<title>GDPR disclosure - {escape(user.get('fullname'))}</title>
+<html lang="{lang}"><head><meta charset="utf-8">
+<title>{tt(lang, 'page_title', name=escape(user.get('fullname')))}</title>
 <style>{CSS}</style></head><body><div class="wrap">
-<header><h1>GDPR data subject access request (Art. 15) - {escape(user.get('fullname'))}</h1>
-<p>Email: {escape(user.get('email'))} · User ID: {escape(user.get('userid'))} · created: {format_ts(user.get('created_at'))}</p>
-<p>Last login: {format_ts(user.get('last_login'))} · Export created: {format_ts(manifest.get('exported_at'))}</p></header>
+<header><h1>{tt(lang, 'doc_title', name=escape(user.get('fullname')))}</h1>
+<p>{t(lang, 'subtitle_email_user', email=escape(user.get('email')), uid=escape(user.get('userid')), created=format_ts(user.get('created_at')))}</p>
+<p>{t(lang, 'subtitle_last_login', last_login=format_ts(user.get('last_login')), exported=format_ts(manifest.get('exported_at')))}</p></header>
 
-<div class="notice"><b>Notice:</b> This report contains personal data and is intended
-for the data subject only. Third-party content (co-authors, reviewer comments, names in
-audit logs) must be redacted before sharing (Art. 15(4) GDPR). Raw values such as password
-hashes, MFA secrets or tokens are deliberately not included - they are only listed as
-categories (see PDF).</div>
+<div class="notice"><b>{tt(lang, 'notice_title')}</b> {t(lang, 'notice_body')}</div>
 
 {limitation_note}
 
-<h2>Overview</h2><div class="cards">{cards}</div>
+<h2>{tt(lang, 'overview')}</h2><div class="cards">{cards}</div>
 
-<h2>Account &amp; teams</h2>
-<table><tr><th>Team</th><th>ID</th><th>Admin</th><th>Owner</th><th>Archived</th></tr>{team_rows}</table>
+<h2>{tt(lang, 'account_teams')}</h2>
+<table><tr><th>{tt(lang, 'team')}</th><th>{tt(lang, 'id')}</th><th>{tt(lang, 'admin')}</th><th>{tt(lang, 'owner')}</th><th>{tt(lang, 'archived')}</th></tr>{team_rows}</table>
 
-<h2>Notifications ({len(notifications)})</h2>
-<table><tr><th>Date</th><th>Category</th><th>Content</th><th>Read</th></tr>{notification_rows}</table>
+<h2>{tt(lang, 'notifications')} ({len(notifications)})</h2>
+<table><tr><th>{tt(lang, 'date')}</th><th>{tt(lang, 'category')}</th><th>{tt(lang, 'content')}</th><th>{tt(lang, 'read')}</th></tr>{notification_rows}</table>
 
-<h2>Groups ({len(my_groups)})</h2>
-<table><tr><th>Group</th><th>ID</th><th>Members</th></tr>{group_rows}</table>
+<h2>{tt(lang, 'groups')} ({len(my_groups)})</h2>
+<table><tr><th>{tt(lang, 'group')}</th><th>{tt(lang, 'id')}</th><th>{tt(lang, 'members')}</th></tr>{group_rows}</table>
 
-<h2>Procurement requests ({len(procurement)})</h2>
-<table><tr><th>Date</th><th>Requester</th><th>Entry</th><th>Quantity</th><th>State</th></tr>{procurement_rows}</table>
+<h2>{tt(lang, 'procurement_requests')} ({len(procurement)})</h2>
+<table><tr><th>{tt(lang, 'date')}</th><th>{tt(lang, 'requester')}</th><th>{tt(lang, 'entry')}</th><th>{tt(lang, 'quantity')}</th><th>{tt(lang, 'state')}</th></tr>{procurement_rows}</table>
 
-<h2>Bookings ({len(bookings)})</h2>
-<table><tr><th>Period</th><th>Title</th><th>Resource</th></tr>{booking_rows}</table>
+<h2>{tt(lang, 'bookings')} ({len(bookings)})</h2>
+<table><tr><th>{tt(lang, 'period')}</th><th>{tt(lang, 'title')}</th><th>{tt(lang, 'resource')}</th></tr>{booking_rows}</table>
 
-<h2>Request actions ({len(request_actions_user)})</h2>
-<table><tr><th>Date</th><th>Action</th><th>State</th><th>Target user</th></tr>{request_action_rows}</table>
+<h2>{tt(lang, 'request_actions')} ({len(request_actions_user)})</h2>
+<table><tr><th>{tt(lang, 'date')}</th><th>{tt(lang, 'action')}</th><th>{tt(lang, 'state')}</th><th>{tt(lang, 'target_user')}</th></tr>{request_action_rows}</table>
 
-<h2>Entries ({sum(counts.values())})</h2>{''.join(entry_links)}
+<h2>{tt(lang, 'entries')} ({sum(counts.values())})</h2>{''.join(entry_links)}
 
-<h2>DB/CLI only (scripts/gdpr_cli.sql)</h2>
+<h2>{tt(lang, 'db_cli_only')}</h2>
 <ul>
 <li>audit_logs, authfail, changelog (structured), api_keys, exports, todolist, unfinished_steps, favtags, pins, sig_keys, edit_mode, lockout_devices</li>
 </ul>
@@ -578,92 +719,92 @@ def build_pdf_report(out_dir: Path, pdf_path: Path) -> None:
         f"{user.get('firstname', '')} {user.get('lastname', '')}".strip() or \
         f"User {user.get('userid', '')}"
 
+    _resolve_fonts(REPORT_LANG)
+    lang = REPORT_LANG
+    FONT = _BASE_FONT
+    FONT_BOLD = _BASE_FONT_BOLD
+
     doc = SimpleDocTemplate(str(pdf_path), pagesize=A4,
                             leftMargin=20 * mm, rightMargin=20 * mm,
                             topMargin=18 * mm, bottomMargin=18 * mm,
                             title=f"GDPR disclosure {user.get('fullname')}")
-    h1 = ParagraphStyle("h1", fontName="Helvetica-Bold", fontSize=16, spaceAfter=10)
-    h2 = ParagraphStyle("h2", fontName="Helvetica-Bold", fontSize=12, spaceBefore=14, spaceAfter=6)
-    body = ParagraphStyle("body", fontName="Helvetica", fontSize=9.5, leading=13)
-    small = ParagraphStyle("small", fontName="Helvetica", fontSize=8, leading=11,
+    h1 = ParagraphStyle("h1", fontName=FONT_BOLD, fontSize=16, spaceAfter=10)
+    h2 = ParagraphStyle("h2", fontName=FONT_BOLD, fontSize=12, spaceBefore=14, spaceAfter=6)
+    body = ParagraphStyle("body", fontName=FONT, fontSize=9.5, leading=13)
+    small = ParagraphStyle("small", fontName=FONT, fontSize=8, leading=11,
                            textColor=colors.HexColor("#555555"))
 
+    # Counts table rows (both pipelines)
+    count_rows = [
+        (t(lang, "pdf_count_experiments"), counts["experiments"]),
+        (t(lang, "pdf_count_items"), counts["items"]),
+        (t(lang, "pdf_count_templates"), counts["experiments_templates"]),
+        (t(lang, "pdf_count_item_types"), counts["items_types"]),
+        (t(lang, "pdf_count_upload_files"), uploads_total),
+        (t(lang, "pdf_count_notifications"),
+         len(db_appendix.get("notifications") or manifest.get("notifications") or [])),
+        (t(lang, "pdf_count_bookings"),
+         len(db_appendix.get("bookings") or manifest.get("bookings") or [])),
+        (t(lang, "pdf_count_groups"),
+         len(db_appendix.get("team_groups") or manifest.get("groups") or [])),
+        (t(lang, "pdf_count_procurement"),
+         len(db_appendix.get("procurement") or manifest.get("procurement") or [])),
+    ]
     story = [
-        Paragraph("GDPR data subject access request (Art. 15) - Summary", h1),
+        Paragraph(t(lang, "pdf_title"), h1),
         Paragraph(
             f"<b>{escape(subject_name)}</b><br/>"
-            f"Email: {escape(user.get('email'))} · "
-            f"User ID: {escape(user.get('userid'))}<br/>Account created: {format_ts(user.get('created_at'))} · "
-            f"Last login: {format_ts(user.get('last_login'))} · Export: {format_ts(manifest.get('exported_at'))}",
+            f"{t(lang, 'pdf_recipient_line', email=escape(user.get('email')), uid=escape(user.get('userid')), created=format_ts(user.get('created_at')), last_login=format_ts(user.get('last_login')), exported=format_ts(manifest.get('exported_at')))}",
             body),
-        Paragraph("1. Categories of personal data processed", h2),
-        Paragraph(
-            "eLabFTW processes the following categories of personal data about you: "
-            "(a) account data (name, email, organisation ID, team memberships, roles, login timestamps), "
-            "(b) content you created (experiments, resources, templates, comments, revisions, steps, tags, links), "
-            "(c) uploaded files, (d) bookings, notifications, group memberships, procurement requests, "
-            "request actions, (e) log/security data (audit trail, login attempts - categories only, see 4).",
-            body),
-        Paragraph("2. Scope of the copy", h2),
-        Paragraph(
-            "The full detail data is attached to this letter as an HTML explorer and as a machine-readable "
-            "copy (JSON/ELN). Counts:", body),
-        Table([[k, str(v)] for k, v in [
-            ("Experiments", counts["experiments"]),
-            ("Items (resources)", counts["items"]),
-            ("Templates", counts["experiments_templates"]),
-            ("Item types", counts["items_types"]),
-            ("Upload files", uploads_total),
-            ("Notifications", len(db_appendix.get("notifications") or manifest.get("notifications") or [])),
-            ("Bookings", len(db_appendix.get("bookings") or manifest.get("bookings") or [])),
-            ("Groups", len(db_appendix.get("team_groups") or manifest.get("groups") or [])),
-            ("Procurement requests", len(db_appendix.get("procurement") or manifest.get("procurement") or [])),
-        ]], colWidths=[90 * mm, 60 * mm], style=TableStyle([
-            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#999999")),
-            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#eef1f5")),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ])),
+        # Controller identity (Art. 4(7) GDPR): interactive form fields the
+        # operator fills in while reviewing the letter (click + type).
+        Paragraph(t(lang, "pdf_controller_label"), body),
+        Spacer(1, 2 * mm),
+        _AcroFormField(t(lang, "pdf_controller_name"), "controller_name"),
+        Spacer(1, 1.5 * mm),
+        _AcroFormField(t(lang, "pdf_controller_address"), "controller_address"),
+        Spacer(1, 1.5 * mm),
+        _AcroFormField(t(lang, "pdf_controller_contact"), "controller_contact"),
+        Spacer(1, 1.5 * mm),
+        _AcroFormField(t(lang, "pdf_controller_dpo"), "controller_dpo"),
+        Spacer(1, 3 * mm),
+        Paragraph(t(lang, "pdf_s1"), h2),
+        Paragraph(t(lang, "pdf_s1_body"), body),
+        Paragraph(t(lang, "pdf_s2"), h2),
+        Paragraph(t(lang, "pdf_s2_body"), body),
+        Table([[k, str(v)] for k, v in count_rows],
+              colWidths=[90 * mm, 60 * mm], style=TableStyle([
+                  ("FONTNAME", (0, 0), (-1, -1), FONT),
+                  ("FONTSIZE", (0, 0), (-1, -1), 9),
+                  ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#999999")),
+                  ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#eef1f5")),
+                  ("TOPPADDING", (0, 0), (-1, -1), 3),
+                  ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+              ])),
         Spacer(1, 6),
         Paragraph(
-            "Teams/roles: " + ", ".join(
-                f"{t.get('name')} (admin: {t.get('is_admin')}, owner: {t.get('is_owner')}, "
-                f"archived: {t.get('is_archived')})" for t in teams), small),
-        Paragraph("3. Purposes, recipients, retention", h2),
+            t(lang, "pdf_teams_roles", teams=", ".join(
+                t(lang, "pdf_team_item",
+                  name=team.get("name"),
+                  admin=t(lang, "yes") if team.get("is_admin") else t(lang, "no"),
+                  owner=t(lang, "yes") if team.get("is_owner") else t(lang, "no"),
+                  archived=t(lang, "yes") if team.get("is_archived") else t(lang, "no"))
+                for team in teams)), small),
+        Paragraph(t(lang, "pdf_s3"), h2),
+        Paragraph(t(lang, "pdf_s3_body"), body),
+        Paragraph(t(lang, "pdf_s4"), h2),
         Paragraph(
-            "Purpose: electronic lab notebook for documenting and tracing research work. "
-            "Recipients: team members according to access rights; hosting operator for operations "
-            "(data processing agreement). Retention: account data until account deletion/archiving; "
-            "lab notebook content according to legal retention obligations (e.g. GxP, German Commercial "
-            "Code § 257 HGB); audit/log data per the operator's retention schedule; backups rotate "
-            "according to the backup policy. "
-            "Source of the data: information you provided and content you created while using the "
-            "service, plus system-generated records (login timestamps, audit trail, upload history) "
-            "(Art. 15(1)(g) GDPR). "
-            "Automated decision-making: no automated decision-making, including profiling, takes place "
-            "(Art. 22 GDPR). "
-            "Transfers: no transfer to third countries or international organisations takes place; "
-            "recipients within the EEA only (Art. 15(1)(f) GDPR).", body),
-        Paragraph("4. Data not included (categories only)", h2),
-        Paragraph(
-            "Password hashes, MFA secrets, reset tokens, API key hashes and signing keys are stored "
-            "hashed/encrypted only and are not handed out for security reasons (Art. 32 GDPR). "
-            + ("The audit trail, failed login attempts, changelog, todolist, export history and "
-               "favourites are included in this package (direct database export). "
-               if is_db else
-               "Audit trail, failed login attempts, todolist, export history, favourites/pins and lock "
-               "states are not retrievable via the API and can be supplied on request (database extract). ")
-            + f"Archived uploads: {uploads_archived or 0} files are only listed as metadata "
-            + ("(included in this package). " if is_db else "(not downloaded with the API). ")
-            + "Third-party portions of shared content may have been redacted (Art. 15(4) GDPR).", body),
-        Paragraph("5. Your rights", h2),
-        Paragraph(
-            "Rectification (Art. 16), erasure (Art. 17 - subject to legal retention obligations), "
-            "restriction (Art. 18), data portability (Art. 20), objection (Art. 21) and the right to "
-            "lodge a complaint with the supervisory authority. This disclosure was provided within the "
-            "time limit of Art. 12(3) GDPR.", body),
+            t(lang, "pdf_s4_body",
+              db_scope=(t(lang, "pdf_s4_db_scope") if is_db
+                        else t(lang, "pdf_s4_api_scope")),
+              archived_line=(
+                  t(lang, "pdf_s4_archived_line",
+                    count=uploads_archived or 0)
+                  + (t(lang, "pdf_s4_archived_db") if is_db
+                     else t(lang, "pdf_s4_archived_api")))),
+            body),
+        Paragraph(t(lang, "pdf_s5"), h2),
+        Paragraph(t(lang, "pdf_s5_body"), body),
     ]
     doc.build(story)
 
@@ -683,14 +824,24 @@ def build_zip(report_dir: Path, zip_path: Path) -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 
-def build_report_for_user(user_dir: Path) -> int:
-    """Build HTML + PDF + ZIP for one user folder (must contain manifest.json)."""
+def build_report_for_user(user_dir: Path, lang_arg: str | None = None) -> int:
+    """Build HTML + PDF + ZIP for one user folder (must contain manifest.json).
+
+    ``lang_arg`` is the raw --lang value ("en", "de", "auto", ...); resolved
+    per user against the manifest's user.lang when "auto".
+    """
+    global REPORT_LANG
     manifest = read_json(user_dir / "manifest.json")
     if not manifest:
         print(f"No export found in {user_dir} - run the export first")
         return 1
     user = manifest.get("user") or {}
     uid = user.get("userid") or manifest.get("target_userid", "x")
+
+    # Resolve report language: explicit --lang wins; "auto" reads the data
+    # subject's eLabFTW UI language from the manifest.
+    REPORT_LANG = normalize_lang(lang_arg or "en", user.get("lang"))
+    lang = REPORT_LANG
 
     # clean only generated artifacts, keep the raw JSON export
     for name in ("index.html", "entries", "assets"):
@@ -721,27 +872,22 @@ def build_report_for_user(user_dir: Path) -> int:
             pass
         archived = manifest.get("uploads_archived", "n/a")
         (user_dir / "LIMITATIONS.md").write_text(
-            f"# Limitations of this API export\n\n"
-            f"This package was created with the 1-click API pipeline "
-            f"(elab-gdpr, sysadmin API key). The following data is NOT included "
-            f"and must be added for a complete Art. 15 disclosure:\n\n"
-            f"- audit_logs, authfail, changelog, api_keys, exports, todolist,\n"
-            f"  sig_keys, favtags (DB-only, {db_counts})\n"
-            f"- archived uploads (state=2, {archived} files - metadata only here)\n\n"
-            f"Run the DB pipeline instead for everything in one go:\n\n"
-            f"    elab-gdpr-db --users {uid} --with-files\n\n"
-            f"Generated: {manifest.get('exported_at', '')}\n", encoding="utf-8")
+            t(lang, "limitations_md",
+              db_counts=db_counts, archived=archived,
+              uid=uid, exported=manifest.get("exported_at", "")),
+            encoding="utf-8")
 
     zip_path = user_dir / f"gdpr_disclosure_User{uid}.zip"
     build_zip(user_dir, zip_path)
 
-    print(f"HTML: {user_dir / 'index.html'}")
-    print(f"PDF:  {pdf_path}")
-    print(f"ZIP:  {zip_path} ({zip_path.stat().st_size // 1024} KB)")
+    print(t(lang, "cli_html", path=user_dir / "index.html"))
+    print(t(lang, "cli_pdf", path=pdf_path))
+    print(t(lang, "cli_zip", path=zip_path, size=zip_path.stat().st_size // 1024))
     return 0
 
 
-def build_reports(base_dir: Path, user_filter: list[int] | None = None) -> dict:
+def build_reports(base_dir: Path, user_filter: list[int] | None = None,
+                  lang_arg: str | None = None) -> dict:
     """Build reports for all user folders with an export (or a subset).
 
     Returns {user_dir_name: 0|1} (1 = report built successfully).
@@ -759,12 +905,14 @@ def build_reports(base_dir: Path, user_filter: list[int] | None = None) -> dict:
         print(f"No exports found under {base_dir} - run the export first")
         return {}
 
+    # default language for CLI progress lines (auto resolves per user later)
+    cli_lang = normalize_lang(lang_arg or "en")
     results = {}
     for user_dir in user_dirs:
-        print(f"\n===== Report for {user_dir.name} =====")
-        results[user_dir.name] = build_report_for_user(user_dir)
+        print(f"\n{t(cli_lang, 'cli_report_for', name=user_dir.name)}")
+        results[user_dir.name] = build_report_for_user(user_dir, lang_arg)
     ok = sum(1 for v in results.values() if v == 0)
-    print(f"\nBuilt {ok}/{len(results)} reports")
+    print(f"\n{t(cli_lang, 'cli_built', ok=ok, total=len(results))}")
     return results
 
 
@@ -776,12 +924,15 @@ def main() -> int:
     parser.add_argument("--user", default=None,
                         help="comma-separated user IDs to build reports for "
                              "(default: all exported users)")
+    parser.add_argument("--lang", default="en",
+                        help="report language: en, de, fr, ... or 'auto' to "
+                             "read the user's eLabFTW language (default: en)")
     args = parser.parse_args()
 
     user_filter = None
     if args.user:
         user_filter = [int(x) for x in args.user.replace(" ", "").split(",") if x]
-    results = build_reports(Path(args.out_dir), user_filter)
+    results = build_reports(Path(args.out_dir), user_filter, args.lang)
     if not results:
         return 1
     return 0 if all(v == 0 for v in results.values()) else 1

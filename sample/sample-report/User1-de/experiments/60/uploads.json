@@ -1,0 +1,16 @@
+[
+  {
+    "id": 300,
+    "real_name": "gdpr-seed.txt",
+    "long_name": "d0/d02adb63-17d8-4b0a-aae9-99f5b855ca58.txt",
+    "comment": "NULL",
+    "item_id": "60",
+    "type": "experiments",
+    "created_at": "2026-09-02 15:07:55",
+    "hash": "3cd2b2e2c66f4b2f58a8e70ee162b9d1ab335a16c254b8b62ce78c5203f62acb",
+    "hash_algorithm": "sha256",
+    "filesize": "36",
+    "state": "1",
+    "storage": "1"
+  }
+]
